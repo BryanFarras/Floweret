@@ -44,7 +44,7 @@ namespace Floweret
 
             const float delayedSample = combBuffer[static_cast<size_t> (readIdx)];
             const float feedback = std::min (0.95f, 0.2f + resonance * 0.15f);
-            const float newCombSample = drivenInput + delayedSample * feedback;
+            const float newCombSample = fastTanh (drivenInput + delayedSample * feedback);
 
             combBuffer[static_cast<size_t> (combWriteIndex)] = newCombSample;
             combWriteIndex = (combWriteIndex + 1) % static_cast<int> (combBuffer.size());
@@ -60,33 +60,38 @@ namespace Floweret
 
             // BPF 1
             const float g1 = std::tan (MathConstants::pi * f1 / static_cast<float> (currentSampleRate));
-            const float k1 = 1.0f / (resonance * 2.5f);
-            const float hp1 = (drivenInput - (2.0f * k1 + g1) * f1_s1 - f1_s2) / (1.0f + 2.0f * k1 * g1 + g1 * g1);
+            const float k1 = 1.0f / std::max (0.2f, resonance * 2.5f);
+            const float denom1 = 1.0f + 2.0f * k1 * g1 + g1 * g1;
+            const float hp1 = (drivenInput - (2.0f * k1 + g1) * f1_s1 - f1_s2) / denom1;
             const float bp1 = hp1 * g1 + f1_s1;
-            f1_s1 = bp1 * g1 + bp1;
-            f1_s2 = bp1 * g1 + f1_s2;
+            const float lp1 = bp1 * g1 + f1_s2;
+            f1_s1 = 2.0f * bp1 - f1_s1;
+            f1_s2 = 2.0f * lp1 - f1_s2;
 
             // BPF 2
             const float g2 = std::tan (MathConstants::pi * f2 / static_cast<float> (currentSampleRate));
-            const float k2 = 1.0f / (resonance * 2.5f);
-            const float hp2 = (drivenInput - (2.0f * k2 + g2) * f2_s1 - f2_s2) / (1.0f + 2.0f * k2 * g2 + g2 * g2);
+            const float k2 = 1.0f / std::max (0.2f, resonance * 2.5f);
+            const float denom2 = 1.0f + 2.0f * k2 * g2 + g2 * g2;
+            const float hp2 = (drivenInput - (2.0f * k2 + g2) * f2_s1 - f2_s2) / denom2;
             const float bp2 = hp2 * g2 + f2_s1;
-            f2_s1 = bp2 * g2 + bp2;
-            f2_s2 = bp2 * g2 + f2_s2;
+            const float lp2 = bp2 * g2 + f2_s2;
+            f2_s1 = 2.0f * bp2 - f2_s1;
+            f2_s2 = 2.0f * lp2 - f2_s2;
 
             return (bp1 * 0.6f + bp2 * 0.4f) * 1.5f;
         }
 
-        // Standard State Variable Filter (SVF) with trapezoidal integration (Chamberlin / Zavalishin topology)
+        // Standard State Variable Filter (SVF) with trapezoidal integration (Zavalishin TPT topology)
         const float g = std::tan (MathConstants::pi * safeCutoff / static_cast<float> (currentSampleRate));
         const float k = 1.0f / std::max (0.1f, resonance);
+        const float denom = 1.0f + 2.0f * k * g + g * g;
 
         // Stage 1
-        const float hp = (drivenInput - (2.0f * k + g) * s1 - s2) / (1.0f + 2.0f * k * g + g * g);
+        const float hp = (drivenInput - (2.0f * k + g) * s1 - s2) / denom;
         const float bp = hp * g + s1;
-        s1 = bp * g + bp;
         const float lp = bp * g + s2;
-        s2 = lp * g + lp;
+        s1 = 2.0f * bp - s1;
+        s2 = 2.0f * lp - s2;
         const float notch = hp + lp;
 
         // If 12dB mode, return immediately
@@ -96,12 +101,12 @@ namespace Floweret
         if (type == FilterType::Notch)      return notch;
 
         // Stage 2 for 24dB slopes
-        float inputStage2 = (type == FilterType::LowPass24) ? lp : hp;
-        const float hp2 = (inputStage2 - (2.0f * k + g) * s3 - s4) / (1.0f + 2.0f * k * g + g * g);
+        const float inputStage2 = (type == FilterType::LowPass24) ? lp : hp;
+        const float hp2 = (inputStage2 - (2.0f * k + g) * s3 - s4) / denom;
         const float bp2 = hp2 * g + s3;
-        s3 = bp2 * g + bp2;
         const float lp2 = bp2 * g + s4;
-        s4 = lp2 * g + lp2;
+        s3 = 2.0f * bp2 - s3;
+        s4 = 2.0f * lp2 - s4;
 
         if (type == FilterType::LowPass24)  return lp2;
         if (type == FilterType::HighPass24) return hp2;

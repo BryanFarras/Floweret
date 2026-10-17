@@ -10,9 +10,9 @@ namespace Floweret
     struct ResonatorBand
     {
         float frequency = 440.0f;
-        // Biquad bandpass filter states
-        float x1 = 0.0f, x2 = 0.0f;
-        float y1 = 0.0f, y2 = 0.0f;
+        // Stereo Biquad bandpass filter states
+        float x1L = 0.0f, x2L = 0.0f, y1L = 0.0f, y2L = 0.0f;
+        float x1R = 0.0f, x2R = 0.0f, y1R = 0.0f, y2R = 0.0f;
         float b0 = 0.0f, b1 = 0.0f, b2 = 0.0f;
         float a1 = 0.0f, a2 = 0.0f;
     };
@@ -28,8 +28,9 @@ namespace Floweret
 
         void updateScale (MusicalScale scale, int rootKey, float resonance);
 
-        // Process audio sample
+        // Process audio sample (mono or stereo)
         float processSample (float inputSample, float colorAmount, float spectralMorph, float spectralGate) noexcept;
+        void processStereo (float& inOutL, float& inOutR, float colorAmount, float spectralMorph, float spectralGate) noexcept;
 
         // Provide real-time data for the Chroma-style visualizer
         float getDryMagnitude() const { return dryEnergy; }

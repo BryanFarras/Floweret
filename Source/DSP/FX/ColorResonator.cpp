@@ -19,7 +19,8 @@ namespace Floweret
     {
         for (auto& b : bands)
         {
-            b.x1 = b.x2 = b.y1 = b.y2 = 0.0f;
+            b.x1L = b.x2L = b.y1L = b.y2L = 0.0f;
+            b.x1R = b.x2R = b.y1R = b.y2R = 0.0f;
         }
         dryEnergy = 0.0f;
         tunedEnergy = 0.0f;
@@ -42,9 +43,15 @@ namespace Floweret
 
     void ColorResonator::updateScale (MusicalScale scale, int rootKey, float resonance)
     {
+        const float targetQ = std::max (1.0f, resonance);
+        if (scale == currentScale && rootKey == currentRootKey && std::abs (targetQ - currentQ) < 0.01f && !bands.empty())
+        {
+            return;
+        }
+
         currentScale = scale;
         currentRootKey = rootKey;
-        currentQ = std::max (1.0f, resonance);
+        currentQ = targetQ;
 
         bands.clear();
         const auto intervals = getScaleIntervals (scale);
@@ -72,59 +79,66 @@ namespace Floweret
 
     float ColorResonator::processSample (float inputSample, float colorAmount, float spectralMorph, float spectralGate) noexcept
     {
-        dryEnergy = 0.95f * dryEnergy + 0.05f * std::abs (inputSample);
+        float l = inputSample;
+        float r = inputSample;
+        processStereo (l, r, colorAmount, spectralMorph, spectralGate);
+        return l;
+    }
+
+    void ColorResonator::processStereo (float& inOutL, float& inOutR, float colorAmount, float spectralMorph, float spectralGate) noexcept
+    {
+        dryEnergy = 0.95f * dryEnergy + 0.05f * (std::abs (inOutL) + std::abs (inOutR)) * 0.5f;
 
         if (colorAmount < 0.01f || bands.empty())
-            return inputSample;
+            return;
 
-        // Effective Q and drive multiplier based on Color parameter (0 to 200%)
-        // Values > 100% boost resonance and add harmonic saturation
-        float resonantSum = 0.0f;
+        float sumL = 0.0f;
+        float sumR = 0.0f;
         const float boostFactor = (colorAmount > 100.0f) ? (1.0f + (colorAmount - 100.0f) * 0.03f) : 1.0f;
 
         for (auto& b : bands)
         {
-            // Biquad bandpass filter equation
-            const float yn = b.b0 * inputSample + b.b1 * b.x1 + b.b2 * b.x2
-                             - b.a1 * b.y1 - b.a2 * b.y2;
+            // Left channel
+            const float ynL = b.b0 * inOutL + b.b1 * b.x1L + b.b2 * b.x2L - b.a1 * b.y1L - b.a2 * b.y2L;
+            b.x2L = b.x1L; b.x1L = inOutL;
+            b.y2L = b.y1L; b.y1L = ynL;
+            sumL += ynL;
 
-            b.x2 = b.x1;
-            b.x1 = inputSample;
-            b.y2 = b.y1;
-            b.y1 = yn;
-
-            resonantSum += yn;
+            // Right channel
+            const float ynR = b.b0 * inOutR + b.b1 * b.x1R + b.b2 * b.x2R - b.a1 * b.y1R - b.a2 * b.y2R;
+            b.x2R = b.x1R; b.x1R = inOutR;
+            b.y2R = b.y1R; b.y1R = ynR;
+            sumR += ynR;
         }
 
-        // Normalize sum by number of active resonant bands
-        resonantSum = (resonantSum / std::sqrt (static_cast<float> (bands.size()))) * 1.8f * boostFactor;
+        const float norm = 1.8f * boostFactor / std::sqrt (static_cast<float> (bands.size()));
+        sumL *= norm;
+        sumR *= norm;
 
         // Apply spectral gate if energy is too low
         const float gateThreshold = std::pow (10.0f, spectralGate / 20.0f);
-        if (std::abs (resonantSum) < gateThreshold)
-        {
-            resonantSum *= 0.1f;
-        }
+        if (std::abs (sumL) < gateThreshold) sumL *= 0.1f;
+        if (std::abs (sumR) < gateThreshold) sumR *= 0.1f;
 
         // Color Bass hyper-resonance saturation for values 100-200%
         if (colorAmount > 100.0f)
         {
-            resonantSum = fastTanh (resonantSum * 1.4f);
+            sumL = fastTanh (sumL * 1.4f);
+            sumR = fastTanh (sumR * 1.4f);
         }
 
-        tunedEnergy = 0.95f * tunedEnergy + 0.05f * std::abs (resonantSum);
+        tunedEnergy = 0.95f * tunedEnergy + 0.05f * (std::abs (sumL) + std::abs (sumR)) * 0.5f;
 
         // Wet / Dry blend
         const float dryWetMix = std::min (colorAmount, 100.0f) * 0.01f;
-        float output = linearInterpolate (inputSample, resonantSum, dryWetMix);
+        inOutL = linearInterpolate (inOutL, sumL, dryWetMix);
+        inOutR = linearInterpolate (inOutR, sumR, dryWetMix);
 
         // Spectral Morph blending
         if (spectralMorph > 0.01f)
         {
-            // Morph preserves transients from dry while carrying resonant body
-            output = linearInterpolate (output, resonantSum, spectralMorph * 0.5f);
+            inOutL = linearInterpolate (inOutL, sumL, spectralMorph * 0.5f);
+            inOutR = linearInterpolate (inOutR, sumR, spectralMorph * 0.5f);
         }
-
-        return output;
     }
 }

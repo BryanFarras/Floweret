@@ -104,6 +104,24 @@ namespace Floweret
 
         // Process audio block through Floweret synthesizer
         synth.processBlock (buffer, midiMessages, apvts, bpm);
+
+        // Safety Sanitizer: prevent NaNs, Infs, or extreme spikes from poisoning the host mixer
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+        {
+            auto* channelData = buffer.getWritePointer (ch);
+            for (int i = 0; i < buffer.getNumSamples(); ++i)
+            {
+                const float s = channelData[i];
+                if (std::isnan (s) || std::isinf (s))
+                {
+                    channelData[i] = 0.0f;
+                }
+                else
+                {
+                    channelData[i] = juce::jlimit (-2.0f, 2.0f, s);
+                }
+            }
+        }
     }
 
     bool FloweretAudioProcessor::hasEditor() const

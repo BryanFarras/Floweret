@@ -192,8 +192,7 @@ namespace Floweret
 
         for (int i = 0; i < numSamples; ++i)
         {
-            left[i]  = colorResonator.processSample (left[i],  colorAmount, specMorph, specGate);
-            right[i] = colorResonator.processSample (right[i], colorAmount, specMorph, specGate);
+            colorResonator.processStereo (left[i], right[i], colorAmount, specMorph, specGate);
         }
 
         // 6. Process Effects Rack (Distortion, Delay, Reverb)
