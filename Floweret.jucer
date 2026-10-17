@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="S7ka9N" name="Floweret" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+  <MAINGROUP id="E84w9d" name="Floweret">
+    <GROUP id="{D286A0CB-0C31-6AEE-7F32-21B84332F45D}" name="Source">
+      <FILE id="xcJoEP" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="HI51qH" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="qtIcrD" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES/>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Floweret"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="Floweret"/>
+      </CONFIGURATIONS>
+    </VS2022>
+    <VS2026 targetFolder="Builds/VisualStudio2026">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Floweret"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="Floweret"/>
+      </CONFIGURATIONS>
+    </VS2026>
+  </EXPORTFORMATS>
+</JUCERPROJECT>
