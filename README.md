@@ -1,24 +1,27 @@
-# Floweret 🌸
+# Floweret
+
 > **Botanica Granular & Wavetable Synthesizer**  
-> Focused on *Color Bass*, *Botanica*, *Dubstep*, and *Glitch*.  
+> Focused on _Color Bass_, _Botanica_, _Dubstep_, and _Glitch_.  
 > Built with JUCE 8 (VST3 & Standalone).
 
 ---
 
-## 🌟 Overview & Aesthetic
+## Overview & Aesthetic
 
 **Floweret** combines the wavetable power of modern synths like Serum and Vital with an organic granular synthesis engine, real-time spectral resynthesis, and scale-locked harmonic resonators tailored for **Color Bass** and **Botanica** music.
 
 The visual design is inspired by the serene, organic **VINE** aesthetic:
+
 - **Palette**: Warm ivory / soft cream canvas, deep pine / moss green accents, and glowing sage pointers.
 - **Growth Field**: Animated real-time visualizer featuring floating translucent frosted glass panels over generative terrain curves.
 - **Botanica LookAndFeel**: Custom frosted rotary dials with perimeter meters, numeric badges, organic pill buttons, and responsive piano keyboard.
 
 ---
 
-## 🎹 Oscillator Types & Sound Engines
+## Oscillator Types & Sound Engines
 
 ### 1. Wavetable Oscillator (`Source/DSP/Oscillators/WavetableOscillator.h`)
+
 - **2048-sample multi-frame wavetables** (64 frames per table) matching modern industry standards.
 - **Smooth Interpolation Mode**: Hermite cubic interpolation for continuous, near-infinite frame positions.
 - **Warp Modes**:
@@ -30,6 +33,7 @@ The visual design is inspired by the serene, organic **VINE** aesthetic:
   - **Dual Warp**: Combined Phase Distortion and exponential Bend.
 
 ### 2. Granular Oscillator (`Source/DSP/Oscillators/GranularOscillator.h`)
+
 - **Dynamic Grain Cloud Engine** with up to 64 overlapping grains.
 - **Controls**:
   - `Position`: Scrub anywhere in the audio buffer.
@@ -41,22 +45,26 @@ The visual design is inspired by the serene, organic **VINE** aesthetic:
   - `Stereo Spread`: True stereo random panning per grain.
 
 ### 3. Spectral Oscillator (`Source/DSP/Oscillators/SpectralOscillator.h`)
+
 - **Harmonic Level Resynthesis**: 64 sinusoidal partials synthesized in real time.
 - **Color Bass Harmonic Quantization**: Snaps partial frequencies to the exact musical notes of the selected scale (Major, Minor, Phrygian Dominant, Pentatonic, In-Sen, Hirajoshi).
 - **Spectral Tilt & Smear**: Darkens/brightens harmonic slopes and blurs spectral frames for frozen metallic crystalline pads.
 
 ### 4. Sample Oscillator (`Source/DSP/Oscillators/SampleOscillator.h`)
+
 - Sample playback engine with **snap-to-zero loop detection**.
 - **Loop Modes**: One-Shot, Forward Loop, Ping-Pong Loop.
 - **Tape-Stop Inertia**: Variable rate deceleration for vinyl brake and glitch pitch-drops.
 - **Transient Slicing**: Real-time score slice point extraction.
 
 ### 5. Multisample Oscillator (`Source/DSP/Oscillators/MultisampleOscillator.h`)
+
 - Multi-velocity and multi-key zone mapping engine.
 - Includes factory botanical acoustic instrument banks:
-  - *Botanica Bells*, *Organic Kalimba*, *Pizzicato Flora*, *Ethereal Flute*.
+  - _Botanica Bells_, _Organic Kalimba_, _Pizzicato Flora_, _Ethereal Flute_.
 
 ### 6. Colored Noise Oscillator (`Source/DSP/Oscillators/NoiseOscillator.h`)
+
 - Full research-backed noise palette (from `noise colors.pdf`):
   - **White**: Uniform flat spectrum.
   - **Pink**: -3 dB/octave (1/f) Paul Kellet filter cascade.
@@ -67,14 +75,17 @@ The visual design is inspired by the serene, organic **VINE** aesthetic:
   - **Velvet**: Sparse random positive/negative impulses for smooth, decorrelated air.
 
 ### 7. Sub Oscillator (`Source/DSP/Oscillators/SubOscillator.h`)
+
 - Clean sub-bass foundation with -1 / -2 / -3 Octave offsets.
 - Saturation drive with soft hyperbolic clipping.
 - **Sub Direct Routing**: Option to route sub directly to master output, bypassing heavy filters and stereo FX to maintain an immovable mono low-end punch for Dubstep and Color Bass.
 
 ---
 
-## 🌈 Color Bass Resonator (`Source/DSP/FX/ColorResonator.h`)
+## Color Bass Resonator (`Source/DSP/FX/ColorResonator.h`)
+
 Inspired by Xynth Audio's **Chroma** (`Misc/Documents/chroma web.pdf`):
+
 - **Scale-Tuned Resonator Bank**: Biquad bandpass filters tuned to musical scale degrees across 6 octaves (100 Hz to 6 kHz).
 - **Musical Scales**: Major, Natural Minor, Harmonic Minor, Dorian, Phrygian Dominant, Pentatonic Minor/Major, In-Sen, Hirajoshi.
 - **Color Knob (0 to 200%)**:
@@ -84,7 +95,7 @@ Inspired by Xynth Audio's **Chroma** (`Misc/Documents/chroma web.pdf`):
 
 ---
 
-## 🎛️ Effects Rack & Modulation
+## Effects Rack & Modulation
 
 - **Effects Rack**:
   - Multi-algorithm Waveshaper: Soft Saturate, Hard Clip, Foldback (Glitch wavefolder), Bitcrusher, Tube Drive.
@@ -100,9 +111,10 @@ Inspired by Xynth Audio's **Chroma** (`Misc/Documents/chroma web.pdf`):
 
 ---
 
-## 🛠️ Building the Project with VS Code
+## Building the Project with VS Code
 
 ### Using VS Code & CMake (Recommended)
+
 1. Open this project directory in **VS Code**:
    ```bash
    code .
@@ -115,8 +127,8 @@ Inspired by Xynth Audio's **Chroma** (`Misc/Documents/chroma web.pdf`):
 5. Press `F5` or run the task **"Run Standalone Plugin"** from the Command Palette (`Ctrl + Shift + P` -> `Tasks: Run Task`) to launch and test the synth immediately.
 
 ### Alternative: Command Line (CMake)
+
 ```bash
 cmake -B build
 cmake --build build --config Release
 ```
-

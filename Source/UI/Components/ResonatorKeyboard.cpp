@@ -92,14 +92,14 @@ namespace Floweret
                 auto keyRect = juce::Rectangle<float> (x, 0.0f, whiteKeyWidth, h);
 
                 juce::Colour keyCol = (n == activeNote)
-                    ? juce::Colour::fromRGB (230, 238, 232)
-                    : juce::Colour::fromRGB (250, 249, 245);
+                    ? lookAndFeel.getPeachCoral()
+                    : lookAndFeel.getWhisperWhite();
 
                 g.setColour (keyCol);
                 g.fillRect (keyRect);
 
                 // Right separator line
-                g.setColour (juce::Colour::fromRGBA (200, 206, 196, 160));
+                g.setColour (lookAndFeel.getPlatinumBorder());
                 g.drawVerticalLine (static_cast<int> (x + whiteKeyWidth), 0.0f, h);
 
                 // Octave labels (C3, C4, C5, C6, C7)
@@ -107,7 +107,7 @@ namespace Floweret
                 {
                     const int oct = (n / 12) - 1;
                     g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
-                    g.setColour (juce::Colour::fromRGBA (27, 46, 36, 140));
+                    g.setColour (lookAndFeel.getMutedSlate().withAlpha (0.7f));
                     g.drawText ("C" + juce::String (oct), keyRect.withTrimmedBottom (4.0f),
                                 juce::Justification::bottomLeft, true);
                 }
@@ -116,7 +116,7 @@ namespace Floweret
             }
         }
 
-        // 2. Draw Black Keys (Deep Pine / Moss Green with rounded bottom corners)
+        // 2. Draw Black Keys (Dark Espresso / Warm Charcoal with soft peachy active highlight)
         whiteIndex = 0;
         for (int n = startNote; n < startNote + totalNotes; ++n)
         {
@@ -127,15 +127,15 @@ namespace Floweret
                 auto blackRect = juce::Rectangle<float> (blackX, 0.0f, blackW, blackKeyHeight);
 
                 juce::Colour blackCol = (n == activeNote)
-                    ? juce::Colour::fromRGB (45, 75, 58)
-                    : juce::Colour::fromRGB (27, 46, 36); // Deep pine green
+                    ? lookAndFeel.getGoldenPeach()
+                    : lookAndFeel.getDarkEspresso();
 
                 g.setColour (blackCol);
-                g.fillRoundedRectangle (blackRect, 3.0f);
+                g.fillRoundedRectangle (blackRect, 2.5f);
 
                 // Subtle inner top highlight
                 g.setColour (juce::Colour::fromRGBA (255, 255, 255, 25));
-                g.drawRoundedRectangle (blackRect.reduced (0.5f), 3.0f, 1.0f);
+                g.drawRoundedRectangle (blackRect.reduced (0.5f), 2.5f, 1.0f);
             }
             else
             {
@@ -144,8 +144,8 @@ namespace Floweret
         }
 
         // Outer Keyboard Border
-        g.setColour (juce::Colour::fromRGBA (200, 206, 196, 200));
-        g.drawRect (bounds, 1.2f);
+        g.setColour (lookAndFeel.getPlatinumBorder());
+        g.drawRect (bounds, 1.0f);
     }
 
     void ResonatorKeyboard::mouseDown (const juce::MouseEvent& e)

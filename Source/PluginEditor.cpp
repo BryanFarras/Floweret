@@ -5,185 +5,89 @@ namespace Floweret
 {
     FloweretAudioProcessorEditor::FloweretAudioProcessorEditor (FloweretAudioProcessor& p)
         : AudioProcessorEditor (&p), audioProcessor (p),
-          growthField (lookAndFeel),
-          colorKnob ("Color", lookAndFeel),
-          mutateKnob ("Mutate", lookAndFeel),
-          bloomKnob ("Bloom", lookAndFeel),
-          spreadKnob ("Spread", lookAndFeel),
-          tailKnob ("Tail", lookAndFeel),
-          wavetableDisplay (lookAndFeel),
-          grainCloudDisplay (lookAndFeel),
-          spectralVisualizer (lookAndFeel, audioProcessor.getSynth().getColorResonator()),
-          wtPosKnob ("WT Pos", lookAndFeel),
-          wtWarpKnob ("WT Warp", lookAndFeel),
-          granSizeKnob ("Grain Size", lookAndFeel),
-          granDensityKnob ("Density", lookAndFeel),
-          granSprayKnob ("Spray", lookAndFeel),
-          specTiltKnob ("Tilt", lookAndFeel),
-          specSmearKnob ("Smear", lookAndFeel),
-          filterCutoffKnob ("Cutoff", lookAndFeel),
-          filterResKnob ("Resonance", lookAndFeel),
-          reverbMixKnob ("Reverb", lookAndFeel),
-          delayMixKnob ("Delay", lookAndFeel),
+          oscA ("OSC A", lookAndFeel, audioProcessor.getAPVTS()),
+          oscB ("OSC B", lookAndFeel, audioProcessor.getAPVTS()),
+          oscC ("OSC C", lookAndFeel, audioProcessor.getAPVTS()),
+          noiseSub (lookAndFeel, audioProcessor.getAPVTS()),
+          preFilter (lookAndFeel, audioProcessor.getAPVTS()),
+          emptyBoxLeft (lookAndFeel, "[ EMPTY BOX ]"),
+          voicing (lookAndFeel, audioProcessor.getAPVTS()),
+          envModule (lookAndFeel, audioProcessor.getAPVTS()),
+          lfoModule (lookAndFeel, audioProcessor.getAPVTS()),
+          emptyBoxRight (lookAndFeel, "[ EMPTY BOX ]"),
+          guitarRigRack (lookAndFeel, audioProcessor.getAPVTS()),
+          samplerDisplay (lookAndFeel),
+          routesDisplay (lookAndFeel, "[ SIGNAL ROUTING MATRIX ]"),
           keyboard (lookAndFeel)
     {
         setLookAndFeel (&lookAndFeel);
 
-        // 1. Header Components
-        titleLabel.setText ("FLOWERET", juce::dontSendNotification);
-        titleLabel.setFont (juce::FontOptions (26.0f, juce::Font::bold));
-        titleLabel.setColour (juce::Label::textColourId, lookAndFeel.getDeepMoss());
-        addAndMakeVisible (titleLabel);
+        // 1. Top Switchable View Tabs from design1.png
+        oscTabBtn.setButtonText ("OSCILATOR");
+        effectsTabBtn.setButtonText ("EFFECTS");
+        routesTabBtn.setButtonText ("ROUTES");
+        samplerTabBtn.setButtonText ("SAMPLER");
 
-        guideBanner.setText ("FLOWERET — Botanica Granular & Wavetable Synthesizer for Color Bass, Dubstep & Glitch", juce::dontSendNotification);
-        guideBanner.setFont (juce::FontOptions (12.0f));
-        guideBanner.setColour (juce::Label::textColourId, juce::Colour::fromRGB (90, 115, 100));
-        addAndMakeVisible (guideBanner);
+        oscTabBtn.setToggleState (true, juce::dontSendNotification);
 
-        outputVolumeSlider.setSliderStyle (juce::Slider::LinearHorizontal);
-        outputVolumeSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-        addAndMakeVisible (outputVolumeSlider);
+        addAndMakeVisible (oscTabBtn);
+        addAndMakeVisible (effectsTabBtn);
+        addAndMakeVisible (routesTabBtn);
+        addAndMakeVisible (samplerTabBtn);
 
-        outputVolumeLabel.setText ("0.0 dB", juce::dontSendNotification);
-        outputVolumeLabel.setFont (juce::FontOptions (12.0f, juce::Font::bold));
-        outputVolumeLabel.setColour (juce::Label::textColourId, lookAndFeel.getDeepMoss());
-        addAndMakeVisible (outputVolumeLabel);
+        oscTabBtn.onClick     = [this]() { switchView (ActiveView::Oscillator); };
+        effectsTabBtn.onClick = [this]() { switchView (ActiveView::Effects); };
+        routesTabBtn.onClick  = [this]() { switchView (ActiveView::Routes); };
+        samplerTabBtn.onClick = [this]() { switchView (ActiveView::Sampler); };
 
-        outputVolumeSlider.onValueChange = [this]() {
-            outputVolumeLabel.setText (juce::String (outputVolumeSlider.getValue(), 1) + " dB", juce::dontSendNotification);
+        // Top Right Master Controls
+        masterLabel.setText ("MASTER", juce::dontSendNotification);
+        masterLabel.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+        masterLabel.setColour (juce::Label::textColourId, lookAndFeel.getMutedSlate());
+        addAndMakeVisible (masterLabel);
+
+        masterGainSlider.setSliderStyle (juce::Slider::LinearHorizontal);
+        masterGainSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        addAndMakeVisible (masterGainSlider);
+
+        masterReadoutLabel.setText ("0.0 dB", juce::dontSendNotification);
+        masterReadoutLabel.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+        masterReadoutLabel.setColour (juce::Label::textColourId, lookAndFeel.getDarkEspresso());
+        addAndMakeVisible (masterReadoutLabel);
+
+        masterGainSlider.onValueChange = [this]() {
+            masterReadoutLabel.setText (juce::String (masterGainSlider.getValue(), 1) + " dB", juce::dontSendNotification);
         };
 
         voiceCounterLabel.setText ("0 VOICES / 3 SAMPLES", juce::dontSendNotification);
-        voiceCounterLabel.setFont (juce::FontOptions (11.0f, juce::Font::bold));
-        voiceCounterLabel.setColour (juce::Label::textColourId, juce::Colour::fromRGB (110, 140, 125));
+        voiceCounterLabel.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+        voiceCounterLabel.setColour (juce::Label::textColourId, lookAndFeel.getMutedSlate());
+        voiceCounterLabel.setJustificationType (juce::Justification::centredRight);
         addAndMakeVisible (voiceCounterLabel);
 
-        themeButton.setButtonText ("LIGHT");
-        addAndMakeVisible (themeButton);
-
-        // 2. Generative Toolbar
-        subtitleLabel.setText ("A GENERATIVE BOTANICAL INSTRUMENT", juce::dontSendNotification);
-        subtitleLabel.setFont (juce::FontOptions (10.0f, juce::Font::bold));
-        subtitleLabel.setColour (juce::Label::textColourId, juce::Colour::fromRGB (120, 140, 130));
-        addAndMakeVisible (subtitleLabel);
-
-        addButton.setButtonText ("ADD");
-        clearButton.setButtonText ("CLEAR");
-        resetButton.setButtonText ("RESET");
         sproutButton.setButtonText ("SPROUT");
-
-        addAndMakeVisible (addButton);
-        addAndMakeVisible (clearButton);
-        addAndMakeVisible (resetButton);
         addAndMakeVisible (sproutButton);
-
-        addButton.onClick = [this]() {
-            fileChooser = std::make_unique<juce::FileChooser> (
-                "Select Audio Sample for Floweret...",
-                juce::File::getSpecialLocation (juce::File::userMusicDirectory),
-                "*.wav;*.aif;*.aiff;*.flac;*.mp3;*.ogg");
-
-            auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
-            fileChooser->launchAsync (flags, [this](const juce::FileChooser& fc) {
-                auto file = fc.getResult();
-                if (file.existsAsFile())
-                {
-                    const bool isLoop = (currentView == ActiveView::Granular);
-                    if (audioProcessor.loadAudioFile (file, isLoop))
-                    {
-                        if (isLoop)
-                        {
-                            loopDropLabel.setText ("GRANULAR: " + file.getFileNameWithoutExtension() + "\nLoaded into Grain Cloud", juce::dontSendNotification);
-                            switchView (ActiveView::Granular);
-                        }
-                        else
-                        {
-                            oneShotDropLabel.setText ("ONE-SHOT: " + file.getFileNameWithoutExtension() + "\nLoaded into Sampler", juce::dontSendNotification);
-                        }
-                        voiceCounterLabel.setText ("SAMPLE: " + file.getFileName().substring (0, 14), juce::dontSendNotification);
-                        repaint();
-                    }
-                }
-            });
-        };
-
-        clearButton.onClick = [this]() {
-            oneShotDropLabel.setText ("ONE-SHOT FILES\nDrop Audio Files", juce::dontSendNotification);
-            loopDropLabel.setText ("LOOP FILES / SFZ\n3 Active Banks Loaded", juce::dontSendNotification);
-            repaint();
-        };
-
         sproutButton.onClick = [this]() { performGenerativeSprout(); };
 
-        keySelector.addItemList (getNoteNames(), 1);
-        keySelector.setSelectedId (4, juce::dontSendNotification); // Eb (index 3 + 1)
-        addAndMakeVisible (keySelector);
+        // 2. OSCILATOR Tab Modules (from design1.png)
+        addAndMakeVisible (oscA);
+        addAndMakeVisible (oscB);
+        addAndMakeVisible (oscC);
+        addAndMakeVisible (noiseSub);
+        addAndMakeVisible (preFilter);
+        addAndMakeVisible (emptyBoxLeft);
 
-        scaleSelector.addItemList (getScaleNames(), 1);
-        scaleSelector.setSelectedId (1, juce::dontSendNotification); // Major
-        addAndMakeVisible (scaleSelector);
+        addAndMakeVisible (voicing);
+        addAndMakeVisible (envModule);
+        addAndMakeVisible (lfoModule);
+        addAndMakeVisible (emptyBoxRight);
 
-        // View Tabs
-        viewGrowthBtn.setButtonText ("GROWTH FIELD");
-        viewWtBtn.setButtonText ("WAVETABLE");
-        viewGranBtn.setButtonText ("GRANULAR");
-        viewSpecBtn.setButtonText ("SPECTRAL");
-        viewFxBtn.setButtonText ("FX & COLOR");
-        viewSeqBtn.setButtonText ("SEQUENCER");
+        // 3. Alternative Views
+        addChildComponent (guitarRigRack);
+        addChildComponent (samplerDisplay);
+        addChildComponent (routesDisplay);
 
-        addAndMakeVisible (viewGrowthBtn);
-        addAndMakeVisible (viewWtBtn);
-        addAndMakeVisible (viewGranBtn);
-        addAndMakeVisible (viewSpecBtn);
-        addAndMakeVisible (viewFxBtn);
-        addAndMakeVisible (viewSeqBtn);
-
-        viewGrowthBtn.onClick = [this]() { switchView (ActiveView::GrowthField); };
-        viewWtBtn.onClick     = [this]() { switchView (ActiveView::Wavetable); };
-        viewGranBtn.onClick   = [this]() { switchView (ActiveView::Granular); };
-        viewSpecBtn.onClick   = [this]() { switchView (ActiveView::Spectral); };
-        viewFxBtn.onClick     = [this]() { switchView (ActiveView::Effects); };
-        viewSeqBtn.onClick    = [this]() { switchView (ActiveView::Sequencer); };
-
-        // 3. Drop Zones
-        oneShotDropLabel.setText ("ONE-SHOT FILES\nDrop Audio Files", juce::dontSendNotification);
-        oneShotDropLabel.setJustificationType (juce::Justification::centred);
-        oneShotDropLabel.setFont (juce::FontOptions (10.0f, juce::Font::bold));
-        oneShotDropLabel.setColour (juce::Label::textColourId, juce::Colour::fromRGB (110, 130, 120));
-        addAndMakeVisible (oneShotDropLabel);
-
-        loopDropLabel.setText ("LOOP FILES / SFZ\n3 Active Banks Loaded", juce::dontSendNotification);
-        loopDropLabel.setJustificationType (juce::Justification::centred);
-        loopDropLabel.setFont (juce::FontOptions (10.0f, juce::Font::bold));
-        loopDropLabel.setColour (juce::Label::textColourId, juce::Colour::fromRGB (110, 130, 120));
-        addAndMakeVisible (loopDropLabel);
-
-        // 4. Growth Field Center & Knobs
-        addAndMakeVisible (growthField);
-        addAndMakeVisible (colorKnob);
-        addAndMakeVisible (mutateKnob);
-        addAndMakeVisible (bloomKnob);
-        addAndMakeVisible (spreadKnob);
-        addAndMakeVisible (tailKnob);
-
-        // Secondary displays & knobs
-        addChildComponent (wavetableDisplay);
-        addChildComponent (grainCloudDisplay);
-        addChildComponent (spectralVisualizer);
-
-        addChildComponent (wtPosKnob);
-        addChildComponent (wtWarpKnob);
-        addChildComponent (granSizeKnob);
-        addChildComponent (granDensityKnob);
-        addChildComponent (granSprayKnob);
-        addChildComponent (specTiltKnob);
-        addChildComponent (specSmearKnob);
-        addChildComponent (filterCutoffKnob);
-        addChildComponent (filterResKnob);
-        addChildComponent (reverbMixKnob);
-        addChildComponent (delayMixKnob);
-
-        // 5. Bottom Keyboard
+        // 4. Bottom Virtual Piano Keyboard (from design1.png)
         addAndMakeVisible (keyboard);
         keyboard.onNoteOn = [this](int midiNote, float vel) {
             audioProcessor.getSynth().handleNoteOn (midiNote, vel);
@@ -194,7 +98,7 @@ namespace Floweret
 
         setupAttachments();
 
-        setSize (980, 640);
+        setSize (1100, 740);
         startTimerHz (30);
     }
 
@@ -208,89 +112,36 @@ namespace Floweret
     {
         auto& apvts = audioProcessor.getAPVTS();
 
-        // Sliders
         sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::masterGain.getParamID(), outputVolumeSlider));
-
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::colorAmount.getParamID(), colorKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::mutateAmount.getParamID(), mutateKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::bloomAmount.getParamID(), bloomKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::spreadAmount.getParamID(), spreadKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::tailAmount.getParamID(), tailKnob.getSlider()));
-
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::wtPosition.getParamID(), wtPosKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::wtWarpAmount.getParamID(), wtWarpKnob.getSlider()));
-
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::granSize.getParamID(), granSizeKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::granDensity.getParamID(), granDensityKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::granSpray.getParamID(), granSprayKnob.getSlider()));
-
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::specTilt.getParamID(), specTiltKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::specSmear.getParamID(), specSmearKnob.getSlider()));
-
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::filterCutoff.getParamID(), filterCutoffKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::filterResonance.getParamID(), filterResKnob.getSlider()));
-
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::reverbMix.getParamID(), reverbMixKnob.getSlider()));
-        sliderAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            apvts, ParamIDs::delayMix.getParamID(), delayMixKnob.getSlider()));
-
-        // Combos
-        comboAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
-            apvts, ParamIDs::colorKey.getParamID(), keySelector));
-        comboAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
-            apvts, ParamIDs::colorScale.getParamID(), scaleSelector));
+            apvts, ParamIDs::masterGain.getParamID(), masterGainSlider));
     }
 
     void FloweretAudioProcessorEditor::switchView (ActiveView newView)
     {
         currentView = newView;
 
-        const bool isGrowth = (currentView == ActiveView::GrowthField);
-        const bool isWt     = (currentView == ActiveView::Wavetable);
-        const bool isGran   = (currentView == ActiveView::Granular);
-        const bool isSpec   = (currentView == ActiveView::Spectral);
-        const bool isFx     = (currentView == ActiveView::Effects);
+        oscTabBtn.setToggleState     (currentView == ActiveView::Oscillator, juce::dontSendNotification);
+        effectsTabBtn.setToggleState (currentView == ActiveView::Effects, juce::dontSendNotification);
+        routesTabBtn.setToggleState  (currentView == ActiveView::Routes, juce::dontSendNotification);
+        samplerTabBtn.setToggleState (currentView == ActiveView::Sampler, juce::dontSendNotification);
 
-        growthField.setVisible (isGrowth);
-        colorKnob.setVisible (isGrowth || isFx);
-        mutateKnob.setVisible (isGrowth);
-        bloomKnob.setVisible (isGrowth);
-        spreadKnob.setVisible (isGrowth);
-        tailKnob.setVisible (isGrowth);
+        const bool isOsc = (currentView == ActiveView::Oscillator);
 
-        wavetableDisplay.setVisible (isWt);
-        wtPosKnob.setVisible (isWt);
-        wtWarpKnob.setVisible (isWt);
+        oscA.setVisible (isOsc);
+        oscB.setVisible (isOsc);
+        oscC.setVisible (isOsc);
+        noiseSub.setVisible (isOsc);
+        preFilter.setVisible (isOsc);
+        emptyBoxLeft.setVisible (isOsc);
 
-        grainCloudDisplay.setVisible (isGran);
-        granSizeKnob.setVisible (isGran);
-        granDensityKnob.setVisible (isGran);
-        granSprayKnob.setVisible (isGran);
+        voicing.setVisible (isOsc);
+        envModule.setVisible (isOsc);
+        lfoModule.setVisible (isOsc);
+        emptyBoxRight.setVisible (isOsc);
 
-        spectralVisualizer.setVisible (isSpec || isFx);
-        specTiltKnob.setVisible (isSpec);
-        specSmearKnob.setVisible (isSpec);
-
-        filterCutoffKnob.setVisible (isFx);
-        filterResKnob.setVisible (isFx);
-        reverbMixKnob.setVisible (isFx);
-        delayMixKnob.setVisible (isFx);
+        guitarRigRack.setVisible  (currentView == ActiveView::Effects);
+        routesDisplay.setVisible  (currentView == ActiveView::Routes);
+        samplerDisplay.setVisible (currentView == ActiveView::Sampler);
 
         resized();
         repaint();
@@ -298,18 +149,17 @@ namespace Floweret
 
     void FloweretAudioProcessorEditor::performGenerativeSprout()
     {
-        // Sprout: Generatively mutate parameters with harmonious musical offsets
         FastRandom rng;
         auto& apvts = audioProcessor.getAPVTS();
 
         if (auto* p = apvts.getParameter (ParamIDs::wtPosition.getParamID()))
             p->setValueNotifyingHost (rng.nextUnsignedFloat());
 
-        if (auto* p = apvts.getParameter (ParamIDs::granPosition.getParamID()))
-            p->setValueNotifyingHost (rng.nextUnsignedFloat());
+        if (auto* p = apvts.getParameter (ParamIDs::filterCutoff.getParamID()))
+            p->setValueNotifyingHost (0.15f + rng.nextUnsignedFloat() * 0.7f);
 
         if (auto* p = apvts.getParameter (ParamIDs::colorAmount.getParamID()))
-            p->setValueNotifyingHost (0.15f + rng.nextUnsignedFloat() * 0.7f);
+            p->setValueNotifyingHost (0.2f + rng.nextUnsignedFloat() * 0.6f);
 
         if (auto* p = apvts.getParameter (ParamIDs::bloomAmount.getParamID()))
             p->setValueNotifyingHost (0.1f + rng.nextUnsignedFloat() * 0.5f);
@@ -317,156 +167,120 @@ namespace Floweret
 
     void FloweretAudioProcessorEditor::timerCallback()
     {
-        // Update voice and sample counters
         const int voiceCount = audioProcessor.getSynth().getActiveVoiceCount();
         voiceCounterLabel.setText (juce::String (voiceCount) + " VOICES / 3 SAMPLES", juce::dontSendNotification);
-
-        // Update real-time visualizer inputs
-        growthField.setAudioActivity (static_cast<float> (voiceCount) * 0.35f);
-
-        if (currentView == ActiveView::Wavetable)
-        {
-            const float pos = audioProcessor.getAPVTS().getRawParameterValue (ParamIDs::wtPosition.getParamID())->load();
-            wavetableDisplay.updateWaveform (pos);
-        }
-        else if (currentView == ActiveView::Granular)
-        {
-            const float pos = audioProcessor.getAPVTS().getRawParameterValue (ParamIDs::granPosition.getParamID())->load();
-            const float spray = audioProcessor.getAPVTS().getRawParameterValue (ParamIDs::granSpray.getParamID())->load();
-            grainCloudDisplay.updateParams (pos, spray);
-        }
     }
 
     void FloweretAudioProcessorEditor::paint (juce::Graphics& g)
     {
-        // Fill pristine warm ivory background
-        g.fillAll (lookAndFeel.getIvoryBg());
+        // 1. Warm Oatmeal Background (#ECE4DB)
+        g.fillAll (lookAndFeel.getOatmealCanvas());
 
-        // Header bottom divider line
-        g.setColour (lookAndFeel.getCardBorder());
-        g.drawHorizontalLine (56, 16.0f, static_cast<float> (getWidth() - 16));
+        const float w = static_cast<float> (getWidth());
+        const float h = static_cast<float> (getHeight());
 
-        // Draw frosted panels behind drop zones
-        auto dropBounds = juce::Rectangle<float> (16.0f, 66.0f, static_cast<float> (getWidth() - 32), 62.0f);
-        g.setColour (juce::Colour::fromRGB (248, 247, 243));
-        g.fillRoundedRectangle (dropBounds, 8.0f);
-        g.setColour (lookAndFeel.getCardBorder());
-        g.drawRoundedRectangle (dropBounds, 8.0f, 1.0f);
-        g.drawVerticalLine (static_cast<int> (dropBounds.getCentreX()), dropBounds.getY(), dropBounds.getBottom());
+        // 2. Subtle Blueprint / Drafting Dot Grid from design1.png
+        g.setColour (lookAndFeel.getPlatinumBorder().withAlpha (0.45f));
+        const float dotSpacing = 16.0f;
+        for (float y = 42.0f; y < h - 90.0f; y += dotSpacing)
+        {
+            for (float x = 12.0f; x < w - 12.0f; x += dotSpacing)
+            {
+                g.fillEllipse (x - 1.0f, y - 1.0f, 2.0f, 2.0f);
+            }
+        }
 
-        // Interactive Drag-and-Drop Visual Highlights
+        // Header separator line
+        g.setColour (lookAndFeel.getPlatinumBorder());
+        g.drawHorizontalLine (38, 12.0f, w - 12.0f);
+
+        // Drag-and-drop indicator
         if (isDraggingFile)
         {
-            auto oneShotBounds = oneShotDropLabel.getBounds().toFloat().expanded (2.0f);
-            auto loopBounds = loopDropLabel.getBounds().toFloat().expanded (2.0f);
-
-            if (isOverOneShotZone)
-            {
-                g.setColour (juce::Colour::fromRGB (60, 160, 100).withAlpha (0.28f));
-                g.fillRoundedRectangle (oneShotBounds, 8.0f);
-                g.setColour (juce::Colour::fromRGB (40, 140, 80));
-                g.drawRoundedRectangle (oneShotBounds, 8.0f, 2.5f);
-            }
-            else if (isOverLoopZone)
-            {
-                g.setColour (juce::Colour::fromRGB (70, 150, 210).withAlpha (0.28f));
-                g.fillRoundedRectangle (loopBounds, 8.0f);
-                g.setColour (juce::Colour::fromRGB (35, 120, 190));
-                g.drawRoundedRectangle (loopBounds, 8.0f, 2.5f);
-            }
-            else
-            {
-                // Full drop zone glow
-                g.setColour (juce::Colour::fromRGB (60, 160, 100).withAlpha (0.15f));
-                g.fillRoundedRectangle (dropBounds, 8.0f);
-                g.setColour (juce::Colour::fromRGB (40, 140, 80));
-                g.drawRoundedRectangle (dropBounds, 8.0f, 2.0f);
-
-                g.setColour (juce::Colour::fromRGB (40, 140, 80).withAlpha (0.5f));
-                g.drawRect (getLocalBounds().toFloat(), 3.0f);
-            }
+            g.setColour (lookAndFeel.getPeachCoral().withAlpha (0.4f));
+            g.drawRect (getLocalBounds().toFloat(), 4.0f);
         }
     }
 
     void FloweretAudioProcessorEditor::resized()
     {
         const int w = getWidth();
-        const int h = getHeight();
 
-        // 1. Header Bar (y: 12 to 50)
-        titleLabel.setBounds (20, 10, 160, 34);
-        guideBanner.setBounds (170, 16, 420, 24);
+        // 1. Top Switchable Tabs from design1.png (OSCILATOR, EFFECTS, ROUTES, SAMPLER)
+        const int tabW = 86;
+        const int tabH = 26;
+        const int tabY = 6;
 
-        outputVolumeSlider.setBounds (w - 380, 18, 90, 22);
-        outputVolumeLabel.setBounds (w - 285, 18, 55, 22);
-        voiceCounterLabel.setBounds (w - 225, 18, 140, 22);
-        themeButton.setBounds (w - 80, 14, 64, 28);
+        oscTabBtn.setBounds     (12 + 0 * (tabW + 6), tabY, tabW, tabH);
+        effectsTabBtn.setBounds (12 + 1 * (tabW + 6), tabY, tabW, tabH);
+        routesTabBtn.setBounds  (12 + 2 * (tabW + 6), tabY, tabW, tabH);
+        samplerTabBtn.setBounds (12 + 3 * (tabW + 6), tabY, tabW, tabH);
 
-        // 2. Toolbar & Drop Zones (y: 64 to 126)
-        const int dropW = (w - 36) / 2;
-        oneShotDropLabel.setBounds (18, 68, dropW - 4, 58);
-        loopDropLabel.setBounds (18 + dropW + 4, 68, dropW - 4, 58);
+        // Top Right Master Controls
+        masterLabel.setBounds        (w - 360, tabY + 4, 52, 18);
+        masterGainSlider.setBounds    (w - 306, tabY + 4, 85, 18);
+        masterReadoutLabel.setBounds  (w - 216, tabY + 4, 48, 18);
+        voiceCounterLabel.setBounds   (w - 162, tabY + 4, 88, 18);
+        sproutButton.setBounds       (w - 68,  tabY,     56, tabH);
 
-        // Toolbar Action Pills
-        subtitleLabel.setBounds (22, 136, 260, 24);
-        addButton.setBounds (w - 480, 134, 52, 26);
-        clearButton.setBounds (w - 422, 134, 58, 26);
-        resetButton.setBounds (w - 358, 134, 58, 26);
-        sproutButton.setBounds (w - 294, 134, 68, 26);
-        keySelector.setBounds (w - 220, 134, 75, 26);
-        scaleSelector.setBounds (w - 140, 134, 120, 26);
+        // 2. Main Workspace Layout from design1.png (y: 44 to 644)
+        const int marginX = 12;
+        const int totalW = w - 24;
+        const int colGap = 12;
 
-        // View Tabs (y: 168 to 196)
-        const int tabW = (w - 32) / 6;
-        viewGrowthBtn.setBounds (16 + 0 * tabW, 168, tabW - 4, 26);
-        viewWtBtn.setBounds     (16 + 1 * tabW, 168, tabW - 4, 26);
-        viewGranBtn.setBounds   (16 + 2 * tabW, 168, tabW - 4, 26);
-        viewSpecBtn.setBounds   (16 + 3 * tabW, 168, tabW - 4, 26);
-        viewFxBtn.setBounds     (16 + 4 * tabW, 168, tabW - 4, 26);
-        viewSeqBtn.setBounds    (16 + 5 * tabW, 168, tabW - 4, 26);
+        const int leftColW = (totalW - colGap) * 48 / 100;
+        const int rightColW = totalW - colGap - leftColW;
+        const int leftColX = marginX;
+        const int rightColX = leftColX + leftColW + colGap;
 
-        // 3. Central Canvas (y: 202 to h - 90)
-        const int canvasY = 202;
-        const int canvasH = h - canvasY - 94;
-        const auto centerArea = juce::Rectangle<int> (16, canvasY, w - 32, canvasH);
+        // Left Column:
+        // Row 1: OSC A (h: 112)
+        // Row 2: OSC B (h: 112)
+        // Row 3: OSC C (h: 112)
+        // Row 4: NOISE OSC & SUB OSC (h: 78)
+        // Row 5: PRE FILTER (3) & [EMPTY BOX] (h: 164)
+        const int rowGap = 7;
+        const int oscH = 112;
 
-        growthField.setBounds (centerArea);
+        oscA.setBounds (leftColX, 44 + 0 * (oscH + rowGap), leftColW, oscH);
+        oscB.setBounds (leftColX, 44 + 1 * (oscH + rowGap), leftColW, oscH);
+        oscC.setBounds (leftColX, 44 + 2 * (oscH + rowGap), leftColW, oscH);
 
-        // Place Dials across the Growth Field matching VINE mockup
-        const int knobSize = 100;
-        const int dialY = canvasY + (canvasH / 2) - 30;
+        const int noiseY = 44 + 3 * (oscH + rowGap);
+        const int noiseH = 78;
+        noiseSub.setBounds (leftColX, noiseY, leftColW, noiseH);
 
-        colorKnob.setBounds  (centerArea.getX() + static_cast<int> (centerArea.getWidth() * 0.16) - knobSize / 2, dialY + 20, knobSize, knobSize + 15);
-        mutateKnob.setBounds (centerArea.getX() + static_cast<int> (centerArea.getWidth() * 0.30) - knobSize / 2, dialY - 50, knobSize, knobSize + 15);
-        bloomKnob.setBounds  (centerArea.getX() + static_cast<int> (centerArea.getWidth() * 0.50) - knobSize / 2, dialY + 30, knobSize, knobSize + 15);
-        spreadKnob.setBounds (centerArea.getX() + static_cast<int> (centerArea.getWidth() * 0.70) - knobSize / 2, dialY - 50, knobSize, knobSize + 15);
-        tailKnob.setBounds   (centerArea.getX() + static_cast<int> (centerArea.getWidth() * 0.84) - knobSize / 2, dialY + 25, knobSize, knobSize + 15);
+        const int filterY = noiseY + noiseH + rowGap;
+        const int filterH = 164;
+        const int halfW = (leftColW - 6) / 2;
+        preFilter.setBounds    (leftColX, filterY, halfW, filterH);
+        emptyBoxLeft.setBounds (leftColX + halfW + 6, filterY, leftColW - halfW - 6, filterH);
 
-        // Engine Displays
-        const auto displayBounds = centerArea.reduced (20);
-        wavetableDisplay.setBounds (displayBounds.withTrimmedRight (centerArea.getWidth() / 3));
-        grainCloudDisplay.setBounds (displayBounds.withTrimmedRight (centerArea.getWidth() / 3));
-        spectralVisualizer.setBounds (displayBounds.withTrimmedRight (centerArea.getWidth() / 3));
+        // Right Column:
+        // Row 1: VOICING & ENV (h: 176)
+        // Row 2: LFO (4 LFO Default) (h: 216)
+        // Row 3: [EMPTY BOX] (h: 194)
+        const int rHalfW = (rightColW - 6) / 2;
+        const int rRow1H = 176;
+        voicing.setBounds   (rightColX, 44, rHalfW, rRow1H);
+        envModule.setBounds (rightColX + rHalfW + 6, 44, rightColW - rHalfW - 6, rRow1H);
 
-        // Side Knobs for active engine views
-        const int sideX = displayBounds.getRight() - (centerArea.getWidth() / 3) + 20;
-        wtPosKnob.setBounds (sideX, canvasY + 20, knobSize, knobSize + 15);
-        wtWarpKnob.setBounds (sideX + knobSize + 20, canvasY + 20, knobSize, knobSize + 15);
+        const int lfoY = 44 + rRow1H + rowGap;
+        const int lfoH = 216;
+        lfoModule.setBounds (rightColX, lfoY, rightColW, lfoH);
 
-        granSizeKnob.setBounds (sideX, canvasY + 20, knobSize, knobSize + 15);
-        granDensityKnob.setBounds (sideX + knobSize + 10, canvasY + 20, knobSize, knobSize + 15);
-        granSprayKnob.setBounds (sideX, canvasY + knobSize + 40, knobSize, knobSize + 15);
+        const int rEmptyY = lfoY + lfoH + rowGap;
+        const int rEmptyH = 194;
+        emptyBoxRight.setBounds (rightColX, rEmptyY, rightColW, rEmptyH);
 
-        specTiltKnob.setBounds (sideX, canvasY + 20, knobSize, knobSize + 15);
-        specSmearKnob.setBounds (sideX + knobSize + 10, canvasY + 20, knobSize, knobSize + 15);
+        // Alternative Views (Cover main workspace when active)
+        const auto altBounds = juce::Rectangle<int> (marginX, 44, totalW, 600);
+        guitarRigRack.setBounds  (altBounds);
+        samplerDisplay.setBounds (altBounds);
+        routesDisplay.setBounds  (altBounds);
 
-        filterCutoffKnob.setBounds (sideX, canvasY + 20, knobSize, knobSize + 15);
-        filterResKnob.setBounds (sideX + knobSize + 10, canvasY + 20, knobSize, knobSize + 15);
-        reverbMixKnob.setBounds (sideX, canvasY + knobSize + 40, knobSize, knobSize + 15);
-        delayMixKnob.setBounds (sideX + knobSize + 10, canvasY + knobSize + 40, knobSize, knobSize + 15);
-
-        // 4. Bottom Virtual Keyboard (y: h - 86 to h - 6)
-        keyboard.setBounds (16, h - 86, w - 32, 80);
+        // 3. Bottom Strip: Full-Width Virtual Piano Keyboard from design1.png (y: 652 to 732)
+        keyboard.setBounds (marginX, 652, totalW, 80);
     }
 
     bool FloweretAudioProcessorEditor::isInterestedInFileDrag (const juce::StringArray& files)
@@ -482,33 +296,27 @@ namespace Floweret
 
     void FloweretAudioProcessorEditor::fileDragEnter (const juce::StringArray& files, int x, int y)
     {
-        juce::ignoreUnused (files);
+        juce::ignoreUnused (files, x, y);
         isDraggingFile = true;
-        fileDragMove (files, x, y);
+        repaint();
     }
 
     void FloweretAudioProcessorEditor::fileDragMove (const juce::StringArray& files, int x, int y)
     {
-        juce::ignoreUnused (files);
-        isOverOneShotZone = oneShotDropLabel.getBounds().contains (x, y);
-        isOverLoopZone = loopDropLabel.getBounds().contains (x, y);
-        repaint();
+        juce::ignoreUnused (files, x, y);
     }
 
     void FloweretAudioProcessorEditor::fileDragExit (const juce::StringArray& files)
     {
         juce::ignoreUnused (files);
         isDraggingFile = false;
-        isOverOneShotZone = false;
-        isOverLoopZone = false;
         repaint();
     }
 
     void FloweretAudioProcessorEditor::filesDropped (const juce::StringArray& files, int x, int y)
     {
+        juce::ignoreUnused (x, y);
         isDraggingFile = false;
-        isOverOneShotZone = false;
-        isOverLoopZone = false;
         repaint();
 
         if (files.isEmpty())
@@ -518,21 +326,11 @@ namespace Floweret
         if (!file.existsAsFile())
             return;
 
-        const bool isLoop = loopDropLabel.getBounds().contains (x, y) || (currentView == ActiveView::Granular);
-
+        const bool isLoop = (currentView == ActiveView::Sampler);
         if (audioProcessor.loadAudioFile (file, isLoop))
         {
-            if (isLoop)
-            {
-                loopDropLabel.setText ("GRANULAR: " + file.getFileNameWithoutExtension() + "\nLoaded into Grain Cloud", juce::dontSendNotification);
-                switchView (ActiveView::Granular);
-            }
-            else
-            {
-                oneShotDropLabel.setText ("ONE-SHOT: " + file.getFileNameWithoutExtension() + "\nLoaded into Sampler", juce::dontSendNotification);
-            }
-
-            voiceCounterLabel.setText ("SAMPLE: " + file.getFileName().substring (0, 14), juce::dontSendNotification);
+            samplerDisplay.setSampleName (file.getFileNameWithoutExtension());
+            voiceCounterLabel.setText ("SAMPLE: " + file.getFileName().substring (0, 12), juce::dontSendNotification);
             repaint();
         }
     }

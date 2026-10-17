@@ -3,11 +3,15 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "UI/BotanicaLookAndFeel.h"
-#include "UI/Components/GrowthFieldVisualizer.h"
-#include "UI/Components/BotanicaKnob.h"
-#include "UI/Components/WavetableDisplay.h"
-#include "UI/Components/GrainCloudDisplay.h"
-#include "UI/Components/SpectralVisualizer.h"
+#include "UI/Components/OscillatorModule.h"
+#include "UI/Components/NoiseSubModule.h"
+#include "UI/Components/PreFilterModule.h"
+#include "UI/Components/VoicingModule.h"
+#include "UI/Components/EnvelopeModule.h"
+#include "UI/Components/LfoModule.h"
+#include "UI/Components/EmptyModuleBox.h"
+#include "UI/Components/GuitarRigRack.h"
+#include "UI/Components/SamplerDisplay.h"
 #include "UI/Components/ResonatorKeyboard.h"
 
 namespace Floweret
@@ -19,12 +23,10 @@ namespace Floweret
     public:
         enum class ActiveView
         {
-            GrowthField = 0,
-            Wavetable,
-            Granular,
-            Spectral,
+            Oscillator = 0,
             Effects,
-            Sequencer
+            Routes,
+            Sampler
         };
 
         FloweretAudioProcessorEditor (FloweretAudioProcessor&);
@@ -45,74 +47,47 @@ namespace Floweret
         FloweretAudioProcessor& audioProcessor;
         BotanicaLookAndFeel lookAndFeel;
 
-        ActiveView currentView = ActiveView::GrowthField;
-
+        ActiveView currentView = ActiveView::Oscillator;
         bool isDraggingFile = false;
-        bool isOverLoopZone = false;
-        bool isOverOneShotZone = false;
-        std::unique_ptr<juce::FileChooser> fileChooser;
 
-        // Header components
-        juce::Label titleLabel;
-        juce::Label guideBanner;
-        juce::Slider outputVolumeSlider;
-        juce::Label outputVolumeLabel;
+        // Top Switchable View Tabs from design1.png
+        juce::TextButton oscTabBtn;
+        juce::TextButton effectsTabBtn;
+        juce::TextButton routesTabBtn;
+        juce::TextButton samplerTabBtn;
+
+        // Top Right Master Controls
+        juce::Label masterLabel;
+        juce::Slider masterGainSlider;
+        juce::Label masterReadoutLabel;
         juce::Label voiceCounterLabel;
-        juce::TextButton themeButton;
-
-        // Generative strip components
-        juce::Label subtitleLabel;
-        juce::TextButton addButton;
-        juce::TextButton clearButton;
-        juce::TextButton resetButton;
         juce::TextButton sproutButton;
-        juce::ComboBox keySelector;
-        juce::ComboBox scaleSelector;
 
-        // View Selector Pill Buttons
-        juce::TextButton viewGrowthBtn;
-        juce::TextButton viewWtBtn;
-        juce::TextButton viewGranBtn;
-        juce::TextButton viewSpecBtn;
-        juce::TextButton viewFxBtn;
-        juce::TextButton viewSeqBtn;
+        // OSCILATOR Tab Modules (Exact layout from design1.png)
+        // Left Column
+        OscillatorModule oscA;
+        OscillatorModule oscB;
+        OscillatorModule oscC;
+        NoiseSubModule noiseSub;
+        PreFilterModule preFilter;
+        EmptyModuleBox emptyBoxLeft;
 
-        // Drop zones
-        juce::Label oneShotDropLabel;
-        juce::Label loopDropLabel;
+        // Right Column
+        VoicingModule voicing;
+        EnvelopeModule envModule;
+        LfoModule lfoModule;
+        EmptyModuleBox emptyBoxRight;
 
-        // Growth Field Center Visualizer & Knobs
-        GrowthFieldVisualizer growthField;
-        BotanicaKnob colorKnob;
-        BotanicaKnob mutateKnob;
-        BotanicaKnob bloomKnob;
-        BotanicaKnob spreadKnob;
-        BotanicaKnob tailKnob;
+        // Alternative Views
+        GuitarRigRack guitarRigRack;
+        SamplerDisplay samplerDisplay;
+        EmptyModuleBox routesDisplay;
 
-        // Engine Displays
-        WavetableDisplay wavetableDisplay;
-        GrainCloudDisplay grainCloudDisplay;
-        SpectralVisualizer spectralVisualizer;
-
-        // Secondary Oscillator & Parameter Knobs
-        BotanicaKnob wtPosKnob;
-        BotanicaKnob wtWarpKnob;
-        BotanicaKnob granSizeKnob;
-        BotanicaKnob granDensityKnob;
-        BotanicaKnob granSprayKnob;
-        BotanicaKnob specTiltKnob;
-        BotanicaKnob specSmearKnob;
-        BotanicaKnob filterCutoffKnob;
-        BotanicaKnob filterResKnob;
-        BotanicaKnob reverbMixKnob;
-        BotanicaKnob delayMixKnob;
-
-        // Bottom Keyboard
+        // Bottom Strip: Full-Width Virtual Piano Keyboard from design1.png
         ResonatorKeyboard keyboard;
 
         // APVTS Attachments
         std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> sliderAttachments;
-        std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>> comboAttachments;
 
         void setupAttachments();
         void switchView (ActiveView newView);
