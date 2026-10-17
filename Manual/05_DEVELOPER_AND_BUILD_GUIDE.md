@@ -6,48 +6,121 @@
 
 ## 1. Building Without Visual Studio
 
-Floweret is completely configured to build on Windows using **VS Code and CMake** without needing the heavy Visual Studio IDE.
+Floweret is completely configured to build on Windows using **VS Code and CMake** without installing the heavy Visual Studio IDE (saving 20+ GB of disk space).
 
-### Prerequisites
+### Why a C++ Compiler is Required
+CMake is a build configuration generator, not a compiler itself. When you run `cmake -B build`, CMake searches your system for an installed C++ compiler to compile the C++ source files into `.vst3` and `.exe` binaries. 
 
-- **Visual Studio Code** (installed at `C:\Users\asus\AppData\Local\Programs\Microsoft VS Code\Code.exe`)
-- **CMake** (installed at `C:\Program Files\CMake\bin\cmake.exe`)
-- **JUCE 8** (located at `C:\Users\asus\Documents\JUCE`)
-- **C/C++ Compiler**: A C++17 compliant compiler (MSVC Build Tools, Clang-cl, or Clang).
+On Windows, standard MinGW GCC is explicitly not supported by JUCE 8. Therefore, you need either **LLVM Clang** or the lightweight **MSVC Command-Line Build Tools**.
 
 ---
 
-## 2. Quick Build in VS Code
+### Step 1: Install a Lightweight Compiler (Choose One)
+
+#### Option A: LLVM Clang & Ninja (Recommended, ~150 MB)
+If you do not want any Microsoft Visual Studio components on your system, install LLVM Clang and the Ninja build system using Windows Package Manager (`winget`):
+
+Open **PowerShell** and run:
+```powershell
+winget install LLVM.LLVM
+winget install Ninja-build.Ninja
+```
+
+#### Option B: MSVC Build Tools (Command-Line Only, No IDE)
+If you prefer the official Microsoft C++ compiler without the Visual Studio GUI editor:
+
+Open **PowerShell** and run:
+```powershell
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+> [!NOTE]
+> After running either `winget` command, close and reopen your PowerShell terminal or VS Code so the new compiler paths are loaded into your environment `PATH`.
+
+---
+
+## 2. Building the Project
+
+### Method A: Using VS Code (Recommended)
 
 1. Open the project root in VS Code:
-
    ```powershell
    code "c:\Users\asus\Documents\Juce Projects\Floweret"
    ```
 
 2. **Select Compiler Kit**:
-   When prompted by the **CMake Tools** status bar at the bottom, select your preferred compiler kit.
+   - When the **CMake Tools** extension prompts you at the bottom status bar, choose your installed compiler (e.g. `Clang` or `Visual Studio Build Tools - amd64`).
 
-3. **Build the Project**:
-   Press **`Ctrl + Shift + B`** (or click **Build** in the bottom status bar).
+3. **Build**:
+   - Press **`Ctrl + Shift + B`** (or click **Build** in the bottom status bar).
 
-   VS Code will invoke CMake:
-
-   ```powershell
-   cmake -B build
-   cmake --build build --config Release
-   ```
-
-4. **Output Targets**:
-   - **VST3 Plugin**: `build/Floweret_artefacts/Release/VST3/Floweret.vst3`
-   - **Standalone App**: `build/Floweret_artefacts/Release/Standalone/Floweret.exe`
-
-5. **Run the Standalone Synth**:
-   Press **`F5`** or execute the task **"Run Standalone Plugin"** via `Ctrl + Shift + P` -> `Tasks: Run Task`.
+4. **Run & Test**:
+   - Press **`F5`** to launch and debug the standalone synthesizer application immediately.
 
 ---
 
-## 3. Codebase Directory Structure
+### Method B: Using PowerShell / Terminal
+
+If you prefer building directly from the command line:
+
+#### 1. With Clang & Ninja:
+```powershell
+# Navigate to the project root
+cd "c:\Users\asus\Documents\Juce Projects\Floweret"
+
+# Configure build with Ninja generator
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+
+# Compile the VST3 and Standalone executable
+cmake --build build --config Release
+```
+
+#### 2. With MSVC Build Tools:
+```powershell
+cd "c:\Users\asus\Documents\Juce Projects\Floweret"
+
+# Configure
+cmake -B build
+
+# Compile
+cmake --build build --config Release
+```
+
+---
+
+## 3. Build Artifacts & Testing
+
+Once compilation completes, your binaries are placed in:
+
+| Target | File Path | Usage |
+| :--- | :--- | :--- |
+| **VST3 Plugin** | `build/Floweret_artefacts/Release/VST3/Floweret.vst3` | Copy to `C:\Program Files\Common Files\VST3` to load into FL Studio, Ableton Live, Bitwig, or Reaper. |
+| **Standalone App** | `build/Floweret_artefacts/Release/Standalone/Floweret.exe` | Double-click to launch Floweret directly as an independent desktop audio instrument. |
+
+---
+
+## 4. Troubleshooting Common Build Issues
+
+### Error: `Running 'nmake' '-?' failed with: no such file or directory`
+- **Cause**: CMake defaulted to `NMake Makefiles` because no compiler environment was active in your terminal.
+- **Fix**: 
+  1. Delete the failed cache folder:
+     ```powershell
+     Remove-Item -Recurse -Force build
+     ```
+  2. Install Clang & Ninja via `winget install LLVM.LLVM` and `winget install Ninja-build.Ninja`.
+  3. Re-run: `cmake -B build -G "Ninja"`.
+
+### Error: `Ignoring extra path from command line: Release`
+- **Cause**: Two commands were pasted on a single line without separation (e.g. `cmake -B buildcmake --build ...`).
+- **Fix**: Run the configuration step (`cmake -B build -G "Ninja"`) and the build step (`cmake --build build`) as two separate commands, or separate them with a semicolon:
+  ```powershell
+  cmake -B build -G "Ninja"; cmake --build build --config Release
+  ```
+
+---
+
+## 5. Codebase Directory Structure
 
 ```
 Floweret/
@@ -123,10 +196,9 @@ Floweret/
 
 ---
 
-## 4. How to Extend Floweret
+## 6. How to Extend Floweret
 
 ### Adding a New Musical Scale
-
 Open [`Source/Common/Parameters.h`](file:///c:/Users/asus/Documents/Juce%20Projects/Floweret/Source/Common/Parameters.h):
 
 1. Add your scale enum to `enum class MusicalScale`.
@@ -135,7 +207,6 @@ Open [`Source/Common/Parameters.h`](file:///c:/Users/asus/Documents/Juce%20Proje
    The Color Bass resonator and spectral quantizer will automatically adapt!
 
 ### Adding Custom Wavetable Frames
-
 Open [`Source/DSP/Oscillators/WavetableOscillator.cpp`](file:///c:/Users/asus/Documents/Juce%20Projects/Floweret/Source/DSP/Oscillators/WavetableOscillator.cpp):
 In `generateFactoryWavetables()`, write additive equations or load `.wav` files into the `frames[f]` vectors.
 Each frame is 2,048 float samples normalized between `-1.0f` and `+1.0f`.

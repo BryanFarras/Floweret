@@ -28,6 +28,8 @@ juce_add_plugin(Floweret
     DESCRIPTION "Botanica Granular & Wavetable Synthesizer"
 )
 
+juce_generate_juce_header(Floweret)
+
 # Source Files
 target_sources(Floweret PRIVATE
     Source/PluginProcessor.cpp
