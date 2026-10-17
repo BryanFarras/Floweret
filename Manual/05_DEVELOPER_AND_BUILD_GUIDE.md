@@ -126,7 +126,7 @@ Run either command in PowerShell:
 
 ---
 
-## 5. Codebase Directory Structure
+## 6. Codebase Directory Structure
 
 ```
 Floweret/
@@ -167,7 +167,7 @@ Floweret/
     │   ├── FloweretSynth.h / .cpp <- Master polyphonic synth engine & voice allocator
     │   ├── FloweretVoice.h / .cpp <- Polyphonic voice combining all oscillators & envelopes
     │   │
-    │   ├── Oscillators/
+    ├── Oscillators/
     │   │   ├── WavetableOscillator.h / .cpp   <- 2048-sample morphing wavetable
     │   │   ├── GranularOscillator.h / .cpp    <- 64-grain dynamic grain cloud
     │   │   ├── SpectralOscillator.h / .cpp    <- Additive harmonic resynthesis
@@ -176,18 +176,18 @@ Floweret/
     │   │   ├── NoiseOscillator.h / .cpp       <- Colored noise generators
     │   │   └── SubOscillator.h / .cpp         <- Sub-bass oscillator with drive & direct out
     │   │
-    │   ├── FX/
+    ├── FX/
     │   │   ├── ColorResonator.h / .cpp        <- Chroma-style scale-tuned resonator bank
     │   │   ├── MultiModeFilter.h / .cpp       <- SVF LP/HP/BP/Notch/Comb/Formant filter
     │   │   └── EffectsRack.h / .cpp           <- Waveshaper, Delay, and Reverb
     │   │
-    │   ├── Sequencer/
+    ├── Sequencer/
     │   │   ├── Arpeggiator.h                  <- Multi-mode BPM-synced arpeggiator
     │   │   └── ClipSequencer.h                <- 16-step clip sequencer with glitch probability
     │   │
-    │   └── Modulation/
-    │       ├── EnvelopeGenerator.h            <- Multi-stage ADSR envelope
-    │       └── LFO.h                          <- Multi-shape LFO with chaos drift
+    └── Modulation/
+        ├── EnvelopeGenerator.h            <- Multi-stage ADSR envelope
+        └── LFO.h                          <- Multi-shape LFO with chaos drift
     │
     └── UI/
         ├── BotanicaLookAndFeel.h / .cpp       <- GRASS aesthetic custom controls & dials
@@ -202,7 +202,7 @@ Floweret/
 
 ---
 
-## 6. How to Extend Floweret
+## 7. How to Extend Floweret
 
 ### Adding a New Musical Scale
 Open [`Source/Common/Parameters.h`](file:///c:/Users/asus/Documents/Juce%20Projects/Floweret/Source/Common/Parameters.h):
