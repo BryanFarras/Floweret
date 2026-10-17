@@ -1,3 +1,13 @@
 # Miscellaneous local folder
 Misc/
 misc/
+
+# Build artifacts
+build/
+Builds/VisualStudio2022/x64/
+Builds/VisualStudio2022/Debug/
+Builds/VisualStudio2022/Release/
+Builds/VisualStudio2026/x64/
+Builds/VisualStudio2026/Debug/
+Builds/VisualStudio2026/Release/
+.vs/

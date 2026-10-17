@@ -1,0 +1,22 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureOnOpen": true,
+    "files.associations": {
+        "*.h": "cpp",
+        "*.cpp": "cpp",
+        "*.jucer": "xml"
+    },
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/Source",
+        "${workspaceFolder}/JuceLibraryCode",
+        "C:/Users/asus/Documents/JUCE/modules"
+    ],
+    "C_Cpp.default.defines": [
+        "JUCE_STANDALONE_APPLICATION=1",
+        "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
+        "DEBUG=1",
+        "_DEBUG=1"
+    ]
+}

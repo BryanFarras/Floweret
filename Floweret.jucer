@@ -1,29 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="S7ka9N" name="Floweret" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+<JUCERPROJECT id="S7ka9N" name="Floweret" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
+              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn,pluginProducesMidiOut"
+              pluginFormats="buildVST3,buildStandalone"
+              pluginManufacturer="FloweretAudio"
+              pluginManufacturerCode="Flwa"
+              pluginCode="Flwt"
+              pluginName="Floweret"
+              pluginDesc="Botanica Granular &amp; Wavetable Synthesizer"
+              companyName="FloweretAudio">
   <MAINGROUP id="E84w9d" name="Floweret">
     <GROUP id="{D286A0CB-0C31-6AEE-7F32-21B84332F45D}" name="Source">
-      <FILE id="xcJoEP" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
-      <FILE id="HI51qH" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
-      <FILE id="qtIcrD" name="MainComponent.cpp" compile="1" resource="0"
-            file="Source/MainComponent.cpp"/>
+      <FILE id="p0" name="PluginProcessor.cpp" compile="1" resource="0" file="Source/PluginProcessor.cpp"/>
+      <FILE id="p1" name="PluginProcessor.h" compile="0" resource="0" file="Source/PluginProcessor.h"/>
+      <FILE id="p2" name="PluginEditor.cpp" compile="1" resource="0" file="Source/PluginEditor.cpp"/>
+      <FILE id="p3" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <GROUP id="g_common" name="Common">
+        <FILE id="c0" name="Parameters.h" compile="0" resource="0" file="Source/Common/Parameters.h"/>
+        <FILE id="c1" name="AudioHelpers.h" compile="0" resource="0" file="Source/Common/AudioHelpers.h"/>
+      </GROUP>
+      <GROUP id="g_dsp" name="DSP">
+        <FILE id="d0" name="FloweretSynth.cpp" compile="1" resource="0" file="Source/DSP/FloweretSynth.cpp"/>
+        <FILE id="d1" name="FloweretSynth.h" compile="0" resource="0" file="Source/DSP/FloweretSynth.h"/>
+        <FILE id="d2" name="FloweretVoice.cpp" compile="1" resource="0" file="Source/DSP/FloweretVoice.cpp"/>
+        <FILE id="d3" name="FloweretVoice.h" compile="0" resource="0" file="Source/DSP/FloweretVoice.h"/>
+        <GROUP id="g_osc" name="Oscillators">
+          <FILE id="o0" name="WavetableOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/WavetableOscillator.cpp"/>
+          <FILE id="o1" name="WavetableOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/WavetableOscillator.h"/>
+          <FILE id="o2" name="GranularOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/GranularOscillator.cpp"/>
+          <FILE id="o3" name="GranularOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/GranularOscillator.h"/>
+          <FILE id="o4" name="SpectralOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/SpectralOscillator.cpp"/>
+          <FILE id="o5" name="SpectralOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/SpectralOscillator.h"/>
+          <FILE id="o6" name="SampleOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/SampleOscillator.cpp"/>
+          <FILE id="o7" name="SampleOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/SampleOscillator.h"/>
+          <FILE id="o8" name="MultisampleOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/MultisampleOscillator.cpp"/>
+          <FILE id="o9" name="MultisampleOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/MultisampleOscillator.h"/>
+          <FILE id="o10" name="NoiseOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/NoiseOscillator.cpp"/>
+          <FILE id="o11" name="NoiseOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/NoiseOscillator.h"/>
+          <FILE id="o12" name="SubOscillator.cpp" compile="1" resource="0" file="Source/DSP/Oscillators/SubOscillator.cpp"/>
+          <FILE id="o13" name="SubOscillator.h" compile="0" resource="0" file="Source/DSP/Oscillators/SubOscillator.h"/>
+        </GROUP>
+        <GROUP id="g_fx" name="FX">
+          <FILE id="f0" name="ColorResonator.cpp" compile="1" resource="0" file="Source/DSP/FX/ColorResonator.cpp"/>
+          <FILE id="f1" name="ColorResonator.h" compile="0" resource="0" file="Source/DSP/FX/ColorResonator.h"/>
+          <FILE id="f2" name="MultiModeFilter.cpp" compile="1" resource="0" file="Source/DSP/FX/MultiModeFilter.cpp"/>
+          <FILE id="f3" name="MultiModeFilter.h" compile="0" resource="0" file="Source/DSP/FX/MultiModeFilter.h"/>
+          <FILE id="f4" name="EffectsRack.cpp" compile="1" resource="0" file="Source/DSP/FX/EffectsRack.cpp"/>
+          <FILE id="f5" name="EffectsRack.h" compile="0" resource="0" file="Source/DSP/FX/EffectsRack.h"/>
+        </GROUP>
+        <GROUP id="g_seq" name="Sequencer">
+          <FILE id="s0" name="Arpeggiator.h" compile="0" resource="0" file="Source/DSP/Sequencer/Arpeggiator.h"/>
+          <FILE id="s1" name="ClipSequencer.h" compile="0" resource="0" file="Source/DSP/Sequencer/ClipSequencer.h"/>
+        </GROUP>
+        <GROUP id="g_mod" name="Modulation">
+          <FILE id="m0" name="EnvelopeGenerator.h" compile="0" resource="0" file="Source/DSP/Modulation/EnvelopeGenerator.h"/>
+          <FILE id="m1" name="LFO.h" compile="0" resource="0" file="Source/DSP/Modulation/LFO.h"/>
+        </GROUP>
+      </GROUP>
+      <GROUP id="g_ui" name="UI">
+        <FILE id="u0" name="BotanicaLookAndFeel.cpp" compile="1" resource="0" file="Source/UI/BotanicaLookAndFeel.cpp"/>
+        <FILE id="u1" name="BotanicaLookAndFeel.h" compile="0" resource="0" file="Source/UI/BotanicaLookAndFeel.h"/>
+        <GROUP id="g_uicomp" name="Components">
+          <FILE id="uc0" name="GrowthFieldVisualizer.cpp" compile="1" resource="0" file="Source/UI/Components/GrowthFieldVisualizer.cpp"/>
+          <FILE id="uc1" name="GrowthFieldVisualizer.h" compile="0" resource="0" file="Source/UI/Components/GrowthFieldVisualizer.h"/>
+          <FILE id="uc2" name="BotanicaKnob.h" compile="0" resource="0" file="Source/UI/Components/BotanicaKnob.h"/>
+          <FILE id="uc3" name="WavetableDisplay.h" compile="0" resource="0" file="Source/UI/Components/WavetableDisplay.h"/>
+          <FILE id="uc4" name="GrainCloudDisplay.h" compile="0" resource="0" file="Source/UI/Components/GrainCloudDisplay.h"/>
+          <FILE id="uc5" name="SpectralVisualizer.h" compile="0" resource="0" file="Source/UI/Components/SpectralVisualizer.h"/>
+          <FILE id="uc6" name="ResonatorKeyboard.cpp" compile="1" resource="0" file="Source/UI/Components/ResonatorKeyboard.cpp"/>
+          <FILE id="uc7" name="ResonatorKeyboard.h" compile="0" resource="0" file="Source/UI/Components/ResonatorKeyboard.h"/>
+        </GROUP>
+      </GROUP>
     </GROUP>
   </MAINGROUP>
-  <MODULES/>
-  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="Floweret"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="Floweret"/>
       </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="C:/Users/asus/Documents/JUCE/modules"/>
+      </MODULEPATHS>
     </VS2022>
     <VS2026 targetFolder="Builds/VisualStudio2026">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="Floweret"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="Floweret"/>
       </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="C:/Users/asus/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="C:/Users/asus/Documents/JUCE/modules"/>
+      </MODULEPATHS>
     </VS2026>
   </EXPORTFORMATS>
 </JUCERPROJECT>
