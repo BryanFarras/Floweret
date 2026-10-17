@@ -5,118 +5,124 @@
 ---
 
 ## 1. Building Without Visual Studio
-
+ 
 Floweret is completely configured to build on Windows using **VS Code and CMake** without installing the heavy Visual Studio IDE (saving 20+ GB of disk space).
-
+ 
 ### Why a C++ Compiler is Required
 CMake is a build configuration generator, not a compiler itself. When you run `cmake -B build`, CMake searches your system for an installed C++ compiler to compile the C++ source files into `.vst3` and `.exe` binaries. 
 
-On Windows, standard MinGW GCC is explicitly not supported by JUCE 8. Therefore, you need either **LLVM Clang** or the lightweight **MSVC Command-Line Build Tools**.
+On Windows, standard MinGW GCC is explicitly rejected by JUCE 8 due to Steinberg VST3 COM ABI requirements. Therefore, you need either the lightweight **MSVC Command-Line Build Tools** or **LLVM Clang**.
 
 ---
 
-### Step 1: Install a Lightweight Compiler (Choose One)
+### Step 1: Install MSVC Build Tools & Windows SDK
 
-#### Option A: LLVM Clang & Ninja (Recommended, ~150 MB)
-If you do not want any Microsoft Visual Studio components on your system, install LLVM Clang and the Ninja build system using Windows Package Manager (`winget`):
+If you do not already have the MSVC compiler and Windows SDK installed:
 
-Open **PowerShell** and run:
+Open **PowerShell (as Administrator)** and run:
 ```powershell
-winget install LLVM.LLVM
-winget install Ninja-build.Ninja
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.26100"
 ```
 
-#### Option B: MSVC Build Tools (Command-Line Only, No IDE)
-If you prefer the official Microsoft C++ compiler without the Visual Studio GUI editor:
-
-Open **PowerShell** and run:
-```powershell
-winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-```
-
-> [!NOTE]
-> After running either `winget` command, close and reopen your PowerShell terminal or VS Code so the new compiler paths are loaded into your environment `PATH`.
+> [!IMPORTANT]
+> A working Windows SDK (such as `10.0.26100.0` or `10.0.22621.0`) is required to provide standard system libraries (`kernel32.lib`, `user32.lib`, etc.).
 
 ---
 
 ## 2. Building the Project
 
-### Method A: Using VS Code (Recommended)
+### Method A: Using PowerShell / Terminal (Verified & Recommended)
 
-1. Open the project root in VS Code:
+Open **PowerShell** in the repository root and run:
+
+```powershell
+# 1. Navigate to the project root
+cd "c:\Users\asus\Documents\Juce Projects\Floweret"
+
+# 2. Configure 64-bit build
+cmake -B build -A x64
+
+# 3. Compile Release VST3 and Standalone binaries
+cmake --build build --config Release
+```
+
+### Method B: Using VS Code
+
+1. Open the project in VS Code:
    ```powershell
    code "c:\Users\asus\Documents\Juce Projects\Floweret"
    ```
-
-2. **Select Compiler Kit**:
-   - When the **CMake Tools** extension prompts you at the bottom status bar, choose your installed compiler (e.g. `Clang` or `Visual Studio Build Tools - amd64`).
-
-3. **Build**:
-   - Press **`Ctrl + Shift + B`** (or click **Build** in the bottom status bar).
-
-4. **Run & Test**:
-   - Press **`F5`** to launch and debug the standalone synthesizer application immediately.
+2. **Select Kit**: Choose `Visual Studio Build Tools - amd64` in the bottom status bar.
+3. **Build**: Press **`Ctrl + Shift + B`** (or click **Build**).
+4. **Launch & Debug Standalone**: Press **`F5`** to launch the standalone instrument immediately.
 
 ---
 
-### Method B: Using PowerShell / Terminal
+## 3. Build Artifacts & What Each File Does
 
-If you prefer building directly from the command line:
+Once compilation completes, all outputs are located in `build/Floweret_artefacts/Release/`:
 
-#### 1. With Clang & Ninja:
-```powershell
-# Navigate to the project root
-cd "c:\Users\asus\Documents\Juce Projects\Floweret"
-
-# Configure build with Ninja generator
-cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-
-# Compile the VST3 and Standalone executable
-cmake --build build --config Release
-```
-
-#### 2. With MSVC Build Tools:
-```powershell
-cd "c:\Users\asus\Documents\Juce Projects\Floweret"
-
-# Configure
-cmake -B build
-
-# Compile
-cmake --build build --config Release
-```
-
----
-
-## 3. Build Artifacts & Testing
-
-Once compilation completes, your binaries are placed in:
-
-| Target | File Path | Usage |
+| Artifact | File Type | Purpose / Description |
 | :--- | :--- | :--- |
-| **VST3 Plugin** | `build/Floweret_artefacts/Release/VST3/Floweret.vst3` | Copy to `C:\Program Files\Common Files\VST3` to load into FL Studio, Ableton Live, Bitwig, or Reaper. |
-| **Standalone App** | `build/Floweret_artefacts/Release/Standalone/Floweret.exe` | Double-click to launch Floweret directly as an independent desktop audio instrument. |
+| **`Floweret.vst3`** | VST3 Directory Bundle | **The main plugin.** Contains `Contents/x86_64-win/Floweret.vst3` and `moduleinfo.json`. This is the ONLY item needed by DAWs. |
+| **`Floweret.exe`** | Standalone Executable | An independent desktop synth app. Double-click to play Floweret without needing a DAW or host. |
+| **`Floweret.lib`** | Import Library | Automatically created by MSVC's linker when building a dynamic library (`.vst3`) that exports functions. Only needed if another C++ project links against Floweret at compile time. |
+| **`Floweret.exp`** | Export Symbol File | A temporary byproduct generated by `link.exe` during its two-pass linking phase. Can be safely ignored. |
+| **`Floweret_SharedCode.lib`** | Static Archive | Intermediate static library generated by JUCE CMake containing the compiled DSP and UI engine before packaging. |
+
+> [!TIP]
+> You **only** need `Floweret.vst3` for your DAW. You do **not** need to copy `.lib` or `.exp` files to your VST3 folder.
 
 ---
 
-## 4. Troubleshooting Common Build Issues
+## 4. Loading Floweret in FL Studio
 
-### Error: `Running 'nmake' '-?' failed with: no such file or directory`
-- **Cause**: CMake defaulted to `NMake Makefiles` because no compiler environment was active in your terminal.
-- **Fix**: 
-  1. Delete the failed cache folder:
-     ```powershell
-     Remove-Item -Recurse -Force build
-     ```
-  2. Install Clang & Ninja via `winget install LLVM.LLVM` and `winget install Ninja-build.Ninja`.
-  3. Re-run: `cmake -B build -G "Ninja"`.
+You can install Floweret to either your user VST3 directory (no admin rights needed) or the system-wide folder:
 
-### Error: `Ignoring extra path from command line: Release`
-- **Cause**: Two commands were pasted on a single line without separation (e.g. `cmake -B buildcmake --build ...`).
-- **Fix**: Run the configuration step (`cmake -B build -G "Ninja"`) and the build step (`cmake --build build`) as two separate commands, or separate them with a semicolon:
+### 1. Copy the VST3 Bundle
+Run either command in PowerShell:
+
+* **User Folder (Recommended, no admin required)**:
   ```powershell
-  cmake -B build -G "Ninja"; cmake --build build --config Release
+  $userVst3 = "$env:LOCALAPPDATA\Programs\Common\VST3"
+  if (!(Test-Path $userVst3)) { New-Item -ItemType Directory -Force -Path $userVst3 }
+  Copy-Item -Recurse -Force "build\Floweret_artefacts\Release\VST3\Floweret.vst3" "$userVst3\"
   ```
+
+* **System-Wide Folder (Requires Administrator PowerShell)**:
+  ```powershell
+  Copy-Item -Recurse -Force "build\Floweret_artefacts\Release\VST3\Floweret.vst3" "C:\Program Files\Common Files\VST3\"
+  ```
+
+### 2. Scan in FL Studio
+1. Open **FL Studio**.
+2. Go to **Options** $\rightarrow$ **Manage plugins**.
+3. Verify that your VST3 directory is listed under *Plugin search paths*.
+4. Click **Find installed plugins** (top left).
+5. Floweret will appear under the **Generators / Synths** category highlighted in orange!
+6. Add Floweret to your Channel Rack and play.
+
+---
+
+## 5. Troubleshooting Common Issues
+
+### Issue 1: `Cannot open include file: 'JuceHeader.h'`
+* **Cause**: By default in JUCE 8 CMake, `juce_add_plugin` does not create the traditional `JuceHeader.h` unless explicitly instructed.
+* **Fix**: Ensure `juce_generate_juce_header(Floweret)` is declared directly below `juce_add_plugin` in `CMakeLists.txt`.
+
+### Issue 2: `LINK : fatal error LNK1181: cannot open input file 'kernel32.lib'`
+* **Cause**: The Windows 10/11 SDK is missing from your MSVC Build Tools installation.
+* **Fix**: Run the cached Windows SDK installer in an Administrator PowerShell:
+  ```powershell
+  & "C:\ProgramData\Microsoft\VisualStudio\Packages\Win11SDK_10.0.26100,version=10.0.26100.15,productarch=neutral\winsdksetup.exe" /features OptionId.DesktopCPPx64 OptionId.DesktopCPPx86 /quiet /norestart
+  ```
+
+### Issue 3: Loud Pop / Beep Followed by Complete DAW Silence (Metronome Silent)
+* **Cause**: A DSP filter feedback loop or unnormalized integrator produced `NaN` (Not a Number) or `+/-Inf`. When a plugin outputs `NaN`, the host's summing bus (`master = master + NaN`) becomes all NaNs, triggering emergency audio engine silence.
+* **Fix**: 
+  1. All SVF filters use the canonical Zavalishin TPT trapezoidal integrator updates:
+     $$s_1 \leftarrow 2 \cdot bp - s_1, \quad s_2 \leftarrow 2 \cdot lp - s_2$$
+  2. Floweret includes an automatic output sanitizer in `PluginProcessor.cpp` that clamps samples between `[-2.0, +2.0]` and converts any invalid floats to `0.0f`.
 
 ---
 
