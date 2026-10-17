@@ -92,6 +92,7 @@ The Spectral Oscillator performs additive harmonic resynthesis of audio material
 ## 4. Sample Oscillator
 
 Dedicated high-precision sample playback engine featuring:
+- **Drag & Drop Sample Loading**: Drag any `.wav`, `.mp3`, `.flac`, `.aiff`, or `.ogg` file directly from Windows Explorer, FL Studio's Browser, or your desktop into the **ONE-SHOT FILES** drop zone (or click the **ADD** button on the toolbar). Floweret will automatically decode, normalize, and activate the sample across all polyphonic voices.
 - **Snap-to-Zero Crossing**: Automatically analyzes sample start and loop points, snapping them to exact zero-crossing phase points to prevent clicks and pops.
 - **Loop Modes**:
   - `One-Shot`: Plays through once from start to finish.
