@@ -47,11 +47,18 @@ namespace Floweret
         // Accessors for UI
         juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
         FloweretSynth& getSynth() noexcept { return synth; }
+        juce::AudioFormatManager& getFormatManager() noexcept { return formatManager; }
+
+        bool loadAudioFile (const juce::File& file, bool isLoopOrGranular);
+        juce::String getLastLoadedFileName() const noexcept { return lastLoadedFileName; }
 
     private:
         //==============================================================================
         juce::AudioProcessorValueTreeState apvts;
         FloweretSynth synth;
+        juce::AudioFormatManager formatManager;
+        juce::String lastLoadedFileName;
+        bool lastLoadedWasLoop = false;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FloweretAudioProcessor)
     };

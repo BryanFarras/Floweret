@@ -77,6 +77,42 @@ namespace Floweret
         addAndMakeVisible (resetButton);
         addAndMakeVisible (sproutButton);
 
+        addButton.onClick = [this]() {
+            fileChooser = std::make_unique<juce::FileChooser> (
+                "Select Audio Sample for Floweret...",
+                juce::File::getSpecialLocation (juce::File::userMusicDirectory),
+                "*.wav;*.aif;*.aiff;*.flac;*.mp3;*.ogg");
+
+            auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+            fileChooser->launchAsync (flags, [this](const juce::FileChooser& fc) {
+                auto file = fc.getResult();
+                if (file.existsAsFile())
+                {
+                    const bool isLoop = (currentView == ActiveView::Granular);
+                    if (audioProcessor.loadAudioFile (file, isLoop))
+                    {
+                        if (isLoop)
+                        {
+                            loopDropLabel.setText ("GRANULAR: " + file.getFileNameWithoutExtension() + "\nLoaded into Grain Cloud", juce::dontSendNotification);
+                            switchView (ActiveView::Granular);
+                        }
+                        else
+                        {
+                            oneShotDropLabel.setText ("ONE-SHOT: " + file.getFileNameWithoutExtension() + "\nLoaded into Sampler", juce::dontSendNotification);
+                        }
+                        voiceCounterLabel.setText ("SAMPLE: " + file.getFileName().substring (0, 14), juce::dontSendNotification);
+                        repaint();
+                    }
+                }
+            });
+        };
+
+        clearButton.onClick = [this]() {
+            oneShotDropLabel.setText ("ONE-SHOT FILES\nDrop Audio Files", juce::dontSendNotification);
+            loopDropLabel.setText ("LOOP FILES / SFZ\n3 Active Banks Loaded", juce::dontSendNotification);
+            repaint();
+        };
+
         sproutButton.onClick = [this]() { performGenerativeSprout(); };
 
         keySelector.addItemList (getNoteNames(), 1);
@@ -317,6 +353,39 @@ namespace Floweret
         g.setColour (lookAndFeel.getCardBorder());
         g.drawRoundedRectangle (dropBounds, 8.0f, 1.0f);
         g.drawVerticalLine (static_cast<int> (dropBounds.getCentreX()), dropBounds.getY(), dropBounds.getBottom());
+
+        // Interactive Drag-and-Drop Visual Highlights
+        if (isDraggingFile)
+        {
+            auto oneShotBounds = oneShotDropLabel.getBounds().toFloat().expanded (2.0f);
+            auto loopBounds = loopDropLabel.getBounds().toFloat().expanded (2.0f);
+
+            if (isOverOneShotZone)
+            {
+                g.setColour (juce::Colour::fromRGB (60, 160, 100).withAlpha (0.28f));
+                g.fillRoundedRectangle (oneShotBounds, 8.0f);
+                g.setColour (juce::Colour::fromRGB (40, 140, 80));
+                g.drawRoundedRectangle (oneShotBounds, 8.0f, 2.5f);
+            }
+            else if (isOverLoopZone)
+            {
+                g.setColour (juce::Colour::fromRGB (70, 150, 210).withAlpha (0.28f));
+                g.fillRoundedRectangle (loopBounds, 8.0f);
+                g.setColour (juce::Colour::fromRGB (35, 120, 190));
+                g.drawRoundedRectangle (loopBounds, 8.0f, 2.5f);
+            }
+            else
+            {
+                // Full drop zone glow
+                g.setColour (juce::Colour::fromRGB (60, 160, 100).withAlpha (0.15f));
+                g.fillRoundedRectangle (dropBounds, 8.0f);
+                g.setColour (juce::Colour::fromRGB (40, 140, 80));
+                g.drawRoundedRectangle (dropBounds, 8.0f, 2.0f);
+
+                g.setColour (juce::Colour::fromRGB (40, 140, 80).withAlpha (0.5f));
+                g.drawRect (getLocalBounds().toFloat(), 3.0f);
+            }
+        }
     }
 
     void FloweretAudioProcessorEditor::resized()
@@ -398,5 +467,73 @@ namespace Floweret
 
         // 4. Bottom Virtual Keyboard (y: h - 86 to h - 6)
         keyboard.setBounds (16, h - 86, w - 32, 80);
+    }
+
+    bool FloweretAudioProcessorEditor::isInterestedInFileDrag (const juce::StringArray& files)
+    {
+        for (const auto& file : files)
+        {
+            const auto ext = juce::File (file).getFileExtension().toLowerCase();
+            if (ext == ".wav" || ext == ".aif" || ext == ".aiff" || ext == ".mp3" || ext == ".flac" || ext == ".ogg")
+                return true;
+        }
+        return false;
+    }
+
+    void FloweretAudioProcessorEditor::fileDragEnter (const juce::StringArray& files, int x, int y)
+    {
+        juce::ignoreUnused (files);
+        isDraggingFile = true;
+        fileDragMove (files, x, y);
+    }
+
+    void FloweretAudioProcessorEditor::fileDragMove (const juce::StringArray& files, int x, int y)
+    {
+        juce::ignoreUnused (files);
+        isOverOneShotZone = oneShotDropLabel.getBounds().contains (x, y);
+        isOverLoopZone = loopDropLabel.getBounds().contains (x, y);
+        repaint();
+    }
+
+    void FloweretAudioProcessorEditor::fileDragExit (const juce::StringArray& files)
+    {
+        juce::ignoreUnused (files);
+        isDraggingFile = false;
+        isOverOneShotZone = false;
+        isOverLoopZone = false;
+        repaint();
+    }
+
+    void FloweretAudioProcessorEditor::filesDropped (const juce::StringArray& files, int x, int y)
+    {
+        isDraggingFile = false;
+        isOverOneShotZone = false;
+        isOverLoopZone = false;
+        repaint();
+
+        if (files.isEmpty())
+            return;
+
+        const juce::File file (files[0]);
+        if (!file.existsAsFile())
+            return;
+
+        const bool isLoop = loopDropLabel.getBounds().contains (x, y) || (currentView == ActiveView::Granular);
+
+        if (audioProcessor.loadAudioFile (file, isLoop))
+        {
+            if (isLoop)
+            {
+                loopDropLabel.setText ("GRANULAR: " + file.getFileNameWithoutExtension() + "\nLoaded into Grain Cloud", juce::dontSendNotification);
+                switchView (ActiveView::Granular);
+            }
+            else
+            {
+                oneShotDropLabel.setText ("ONE-SHOT: " + file.getFileNameWithoutExtension() + "\nLoaded into Sampler", juce::dontSendNotification);
+            }
+
+            voiceCounterLabel.setText ("SAMPLE: " + file.getFileName().substring (0, 14), juce::dontSendNotification);
+            repaint();
+        }
     }
 }

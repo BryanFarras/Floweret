@@ -12,7 +12,9 @@
 
 namespace Floweret
 {
-    class FloweretAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::Timer
+    class FloweretAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                         public juce::Timer,
+                                         public juce::FileDragAndDropTarget
     {
     public:
         enum class ActiveView
@@ -32,11 +34,23 @@ namespace Floweret
         void resized() override;
         void timerCallback() override;
 
+        // FileDragAndDropTarget overrides
+        bool isInterestedInFileDrag (const juce::StringArray& files) override;
+        void fileDragEnter (const juce::StringArray& files, int x, int y) override;
+        void fileDragMove (const juce::StringArray& files, int x, int y) override;
+        void fileDragExit (const juce::StringArray& files) override;
+        void filesDropped (const juce::StringArray& files, int x, int y) override;
+
     private:
         FloweretAudioProcessor& audioProcessor;
         BotanicaLookAndFeel lookAndFeel;
 
         ActiveView currentView = ActiveView::GrowthField;
+
+        bool isDraggingFile = false;
+        bool isOverLoopZone = false;
+        bool isOverOneShotZone = false;
+        std::unique_ptr<juce::FileChooser> fileChooser;
 
         // Header components
         juce::Label titleLabel;

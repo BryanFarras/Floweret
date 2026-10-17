@@ -31,6 +31,16 @@ namespace Floweret
         bool isActive() const noexcept;
         int getCurrentlyPlayingNote() const noexcept { return currentMidiNote; }
 
+        void loadSampleForGranular (const juce::AudioBuffer<float>& sample)
+        {
+            granularOsc.loadSample (sample);
+        }
+
+        void loadSampleForSampler (const juce::AudioBuffer<float>& sample)
+        {
+            sampleOsc.loadSample (sample);
+        }
+
         // Render next audio block
         void renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples,
                               const juce::AudioProcessorValueTreeState& apvts,

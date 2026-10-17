@@ -34,9 +34,12 @@ namespace Floweret
         int getActiveVoiceCount() const noexcept;
         const ColorResonator& getColorResonator() const { return colorResonator; }
 
+        void loadSample (const juce::AudioBuffer<float>& sample, bool isGranular);
+
     private:
         double currentSampleRate = 44100.0;
         int currentPitchWheel = 8192;
+        juce::CriticalSection synthLock;
 
         std::vector<FloweretVoice> voices;
         ColorResonator colorResonator;

@@ -8,6 +8,7 @@ namespace Floweret
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
           apvts (*this, nullptr, "Parameters", createParameterLayout())
     {
+        formatManager.registerBasicFormats();
     }
 
     FloweretAudioProcessor::~FloweretAudioProcessor()
@@ -148,6 +149,52 @@ namespace Floweret
         {
             apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
         }
+    }
+
+    bool FloweretAudioProcessor::loadAudioFile (const juce::File& file, bool isLoopOrGranular)
+    {
+        if (!file.existsAsFile())
+            return false;
+
+        std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor (file));
+        if (reader == nullptr)
+            return false;
+
+        const int numSamples = static_cast<int> (reader->lengthInSamples);
+        if (numSamples <= 0)
+            return false;
+
+        // Cap at 30 seconds of audio to keep RAM lightweight
+        const int maxSamples = static_cast<int> (reader->sampleRate * 30.0);
+        const int samplesToRead = std::min (numSamples, maxSamples);
+
+        juce::AudioBuffer<float> newBuffer (1, samplesToRead);
+        reader->read (&newBuffer, 0, samplesToRead, 0, true, true);
+
+        // Peak normalization
+        const float maxMag = newBuffer.getMagnitude (0, samplesToRead);
+        if (maxMag > 0.001f)
+        {
+            newBuffer.applyGain (0.85f / maxMag);
+        }
+
+        synth.loadSample (newBuffer, isLoopOrGranular);
+        lastLoadedFileName = file.getFileName();
+        lastLoadedWasLoop = isLoopOrGranular;
+
+        // Automatically activate the corresponding oscillator parameter
+        if (isLoopOrGranular)
+        {
+            if (auto* p = apvts.getParameter (ParamIDs::granActive.getParamID()))
+                p->setValueNotifyingHost (1.0f);
+        }
+        else
+        {
+            if (auto* p = apvts.getParameter (ParamIDs::smpActive.getParamID()))
+                p->setValueNotifyingHost (1.0f);
+        }
+
+        return true;
     }
 }
 

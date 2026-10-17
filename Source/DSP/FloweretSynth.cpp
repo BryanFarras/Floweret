@@ -210,4 +210,16 @@ namespace Floweret
             right[i] = (right[i] + subR[i]) * masterLinearGain;
         }
     }
+
+    void FloweretSynth::loadSample (const juce::AudioBuffer<float>& sample, bool isGranular)
+    {
+        const juce::ScopedLock sl (synthLock);
+        for (auto& v : voices)
+        {
+            if (isGranular)
+                v.loadSampleForGranular (sample);
+            else
+                v.loadSampleForSampler (sample);
+        }
+    }
 }
