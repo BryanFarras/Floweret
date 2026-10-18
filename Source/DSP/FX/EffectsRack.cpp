@@ -111,11 +111,29 @@ namespace Floweret
         }
     }
 
-    void EffectsRack::processBlock (juce::AudioBuffer<float>& buffer,
-                                   DistortionType distType, float distDrive, float distMix,
-                                   float delayTimeSec, float delayFeedback, float delayMix,
-                                   float reverbSize, float reverbDamp, float reverbMix)
+    void EffectsRack::processDistortion (juce::AudioBuffer<float>& buffer, DistortionType distType, float distDrive, float distMix)
     {
+        if (distMix <= 0.001f)
+            return;
+
+        const int numSamples = buffer.getNumSamples();
+        auto* left = buffer.getWritePointer (0);
+        auto* right = (buffer.getNumChannels() > 1) ? buffer.getWritePointer (1) : left;
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float distL = processDistortionSample (left[i], distType, distDrive);
+            const float distR = processDistortionSample (right[i], distType, distDrive);
+            left[i] = linearInterpolate (left[i], distL, distMix);
+            right[i] = linearInterpolate (right[i], distR, distMix);
+        }
+    }
+
+    void EffectsRack::processDelay (juce::AudioBuffer<float>& buffer, float delayTimeSec, float delayFeedback, float delayMix)
+    {
+        if (delayMix <= 0.001f)
+            return;
+
         const int numSamples = buffer.getNumSamples();
         auto* left = buffer.getWritePointer (0);
         auto* right = (buffer.getNumChannels() > 1) ? buffer.getWritePointer (1) : left;
@@ -126,90 +144,94 @@ namespace Floweret
 
         for (int i = 0; i < numSamples; ++i)
         {
-            // 1. Distortion
-            if (distMix > 0.001f)
-            {
-                const float distL = processDistortionSample (left[i], distType, distDrive);
-                const float distR = processDistortionSample (right[i], distType, distDrive);
-                left[i] = linearInterpolate (left[i], distL, distMix);
-                right[i] = linearInterpolate (right[i], distR, distMix);
-            }
+            int readL = delayWritePos - delayLengthSamples;
+            if (readL < 0) readL += maxDelayBuf;
 
-            // 2. Ping-Pong Delay
-            if (delayMix > 0.001f)
-            {
-                int readL = delayWritePos - delayLengthSamples;
-                if (readL < 0) readL += maxDelayBuf;
+            int readR = delayWritePos - (delayLengthSamples / 2);
+            if (readR < 0) readR += maxDelayBuf;
 
-                int readR = delayWritePos - (delayLengthSamples / 2);
-                if (readR < 0) readR += maxDelayBuf;
+            const float delayedL = delayBufferL[static_cast<size_t> (readL)];
+            const float delayedR = delayBufferR[static_cast<size_t> (readR)];
 
-                const float delayedL = delayBufferL[static_cast<size_t> (readL)];
-                const float delayedR = delayBufferR[static_cast<size_t> (readR)];
+            delayBufferL[static_cast<size_t> (delayWritePos)] = left[i] + delayedR * delayFeedback;
+            delayBufferR[static_cast<size_t> (delayWritePos)] = right[i] + delayedL * delayFeedback;
 
-                // Ping-pong cross feedback
-                delayBufferL[static_cast<size_t> (delayWritePos)] = left[i] + delayedR * delayFeedback;
-                delayBufferR[static_cast<size_t> (delayWritePos)] = right[i] + delayedL * delayFeedback;
+            left[i] = linearInterpolate (left[i], delayedL, delayMix);
+            right[i] = linearInterpolate (right[i], delayedR, delayMix);
 
-                left[i] = linearInterpolate (left[i], delayedL, delayMix);
-                right[i] = linearInterpolate (right[i], delayedR, delayMix);
-
-                delayWritePos = (delayWritePos + 1) % maxDelayBuf;
-            }
-
-            // 3. Algorithmic Reverb
-            if (reverbMix > 0.001f)
-            {
-                const float inputMono = (left[i] + right[i]) * 0.5f;
-
-                // Comb filter network
-                float combSumL = 0.0f;
-                float combSumR = 0.0f;
-                const float feedback = 0.7f + reverbSize * 0.28f;
-                const float dampCoeff = 0.1f + reverbDamp * 0.85f;
-
-                for (auto& c : combsL)
-                {
-                    const float delayed = c.buf[static_cast<size_t> (c.pos)];
-                    c.filterState = delayed * (1.0f - dampCoeff) + c.filterState * dampCoeff;
-                    c.buf[static_cast<size_t> (c.pos)] = inputMono + c.filterState * feedback;
-                    c.pos = (c.pos + 1) % static_cast<int> (c.buf.size());
-                    combSumL += delayed;
-                }
-
-                for (auto& c : combsR)
-                {
-                    const float delayed = c.buf[static_cast<size_t> (c.pos)];
-                    c.filterState = delayed * (1.0f - dampCoeff) + c.filterState * dampCoeff;
-                    c.buf[static_cast<size_t> (c.pos)] = inputMono + c.filterState * feedback;
-                    c.pos = (c.pos + 1) % static_cast<int> (c.buf.size());
-                    combSumR += delayed;
-                }
-
-                // Allpass diffusers
-                float diffL = combSumL * 0.25f;
-                for (auto& a : allpassesL)
-                {
-                    const float bufOut = a.buf[static_cast<size_t> (a.pos)];
-                    const float temp = diffL + bufOut * a.feedback;
-                    a.buf[static_cast<size_t> (a.pos)] = temp;
-                    diffL = -diffL + temp * (1.0f - a.feedback);
-                    a.pos = (a.pos + 1) % static_cast<int> (a.buf.size());
-                }
-
-                float diffR = combSumR * 0.25f;
-                for (auto& a : allpassesR)
-                {
-                    const float bufOut = a.buf[static_cast<size_t> (a.pos)];
-                    const float temp = diffR + bufOut * a.feedback;
-                    a.buf[static_cast<size_t> (a.pos)] = temp;
-                    diffR = -diffR + temp * (1.0f - a.feedback);
-                    a.pos = (a.pos + 1) % static_cast<int> (a.buf.size());
-                }
-
-                left[i] = linearInterpolate (left[i], diffL, reverbMix);
-                right[i] = linearInterpolate (right[i], diffR, reverbMix);
-            }
+            delayWritePos = (delayWritePos + 1) % maxDelayBuf;
         }
+    }
+
+    void EffectsRack::processReverb (juce::AudioBuffer<float>& buffer, float reverbSize, float reverbDamp, float reverbMix)
+    {
+        if (reverbMix <= 0.001f)
+            return;
+
+        const int numSamples = buffer.getNumSamples();
+        auto* left = buffer.getWritePointer (0);
+        auto* right = (buffer.getNumChannels() > 1) ? buffer.getWritePointer (1) : left;
+
+        const float feedback = 0.7f + reverbSize * 0.28f;
+        const float dampCoeff = 0.1f + reverbDamp * 0.85f;
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float inputMono = (left[i] + right[i]) * 0.5f;
+
+            float combSumL = 0.0f;
+            float combSumR = 0.0f;
+
+            for (auto& c : combsL)
+            {
+                const float delayed = c.buf[static_cast<size_t> (c.pos)];
+                c.filterState = delayed * (1.0f - dampCoeff) + c.filterState * dampCoeff;
+                c.buf[static_cast<size_t> (c.pos)] = inputMono + c.filterState * feedback;
+                c.pos = (c.pos + 1) % static_cast<int> (c.buf.size());
+                combSumL += delayed;
+            }
+
+            for (auto& c : combsR)
+            {
+                const float delayed = c.buf[static_cast<size_t> (c.pos)];
+                c.filterState = delayed * (1.0f - dampCoeff) + c.filterState * dampCoeff;
+                c.buf[static_cast<size_t> (c.pos)] = inputMono + c.filterState * feedback;
+                c.pos = (c.pos + 1) % static_cast<int> (c.buf.size());
+                combSumR += delayed;
+            }
+
+            float diffL = combSumL * 0.25f;
+            for (auto& a : allpassesL)
+            {
+                const float bufOut = a.buf[static_cast<size_t> (a.pos)];
+                const float temp = diffL + bufOut * a.feedback;
+                a.buf[static_cast<size_t> (a.pos)] = temp;
+                diffL = -diffL + temp * (1.0f - a.feedback);
+                a.pos = (a.pos + 1) % static_cast<int> (a.buf.size());
+            }
+
+            float diffR = combSumR * 0.25f;
+            for (auto& a : allpassesR)
+            {
+                const float bufOut = a.buf[static_cast<size_t> (a.pos)];
+                const float temp = diffR + bufOut * a.feedback;
+                a.buf[static_cast<size_t> (a.pos)] = temp;
+                diffR = -diffR + temp * (1.0f - a.feedback);
+                a.pos = (a.pos + 1) % static_cast<int> (a.buf.size());
+            }
+
+            left[i] = linearInterpolate (left[i], diffL, reverbMix);
+            right[i] = linearInterpolate (right[i], diffR, reverbMix);
+        }
+    }
+
+    void EffectsRack::processBlock (juce::AudioBuffer<float>& buffer,
+                                   DistortionType distType, float distDrive, float distMix,
+                                   float delayTimeSec, float delayFeedback, float delayMix,
+                                   float reverbSize, float reverbDamp, float reverbMix)
+    {
+        processDistortion (buffer, distType, distDrive, distMix);
+        processDelay (buffer, delayTimeSec, delayFeedback, delayMix);
+        processReverb (buffer, reverbSize, reverbDamp, reverbMix);
     }
 }

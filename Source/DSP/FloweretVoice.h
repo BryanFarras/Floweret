@@ -53,7 +53,9 @@ namespace Floweret
         float currentVelocity = 0.0f;
         float pitchBendSemitones = 0.0f;
 
-        WavetableOscillator wavetableOsc;
+        WavetableOscillator wavetableOscA;
+        WavetableOscillator wavetableOscB;
+        WavetableOscillator wavetableOscC;
         GranularOscillator granularOsc;
         SpectralOscillator spectralOsc;
         SampleOscillator sampleOsc;

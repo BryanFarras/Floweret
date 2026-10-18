@@ -16,6 +16,11 @@ namespace Floweret
         void prepare (double sampleRate);
         void reset();
 
+        // Modular stage processing
+        void processDistortion (juce::AudioBuffer<float>& buffer, DistortionType distType, float distDrive, float distMix);
+        void processDelay (juce::AudioBuffer<float>& buffer, float delayTimeSec, float delayFeedback, float delayMix);
+        void processReverb (juce::AudioBuffer<float>& buffer, float reverbSize, float reverbDamp, float reverbMix);
+
         // Process a stereo block through Distortion -> Delay -> Reverb
         void processBlock (juce::AudioBuffer<float>& buffer,
                            DistortionType distType, float distDrive, float distMix,

@@ -13,6 +13,7 @@
 #include "UI/Components/GuitarRigRack.h"
 #include "UI/Components/SamplerDisplay.h"
 #include "UI/Components/ResonatorKeyboard.h"
+#include "UI/FloweretLogoData.h"
 
 namespace Floweret
 {
@@ -46,6 +47,7 @@ namespace Floweret
     private:
         FloweretAudioProcessor& audioProcessor;
         BotanicaLookAndFeel lookAndFeel;
+        juce::Image logoImage;
 
         ActiveView currentView = ActiveView::Oscillator;
         bool isDraggingFile = false;
@@ -70,7 +72,6 @@ namespace Floweret
         OscillatorModule oscC;
         NoiseSubModule noiseSub;
         PreFilterModule preFilter;
-        EmptyModuleBox emptyBoxLeft;
 
         // Right Column
         VoicingModule voicing;

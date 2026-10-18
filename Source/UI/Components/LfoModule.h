@@ -65,8 +65,10 @@ namespace Floweret
             // Header line
             g.drawHorizontalLine (24, bounds.getX(), bounds.getRight());
 
-            // LFO Wave Display Box (y: 28 to 110)
-            auto waveBounds = juce::Rectangle<float> (bounds.getX() + 8.0f, 28.0f, bounds.getWidth() - 16.0f, 86.0f);
+            // LFO Wave Display Box
+            const float dialAreaH = 80.0f;
+            const float waveH = juce::jmax (50.0f, bounds.getHeight() - dialAreaH - 32.0f);
+            auto waveBounds = juce::Rectangle<float> (bounds.getX() + 8.0f, 28.0f, bounds.getWidth() - 16.0f, waveH);
             g.setColour (juce::Colour::fromRGB (0x22, 0x26, 0x28));
             g.fillRoundedRectangle (waveBounds, 4.0f);
             g.setColour (lookAndFeel.getPlatinumBorder().withAlpha (0.35f));
@@ -151,14 +153,15 @@ namespace Floweret
 
             shapeBox.setBounds (getWidth() - 118, 3, 110, 20);
 
-            // Dials below display (y: 122 to bottom)
-            const int dialY = 138;
+            // Dials below display anchored to bottom
             const int dialW = (getWidth() - 16) / 4;
-            const int dialSize = juce::jmin (dialW - 4, 52);
+            const int dialSize = juce::jlimit (36, 56, dialW - 4);
+            const int dialY = getHeight() - dialSize - 10;
+            const int labelY = dialY - 16;
 
             auto placeDial = [&](juce::Slider& s, juce::Label& l, int idx) {
                 const int dx = 8 + idx * dialW;
-                l.setBounds (dx, 120, dialW, 14);
+                l.setBounds (dx, labelY, dialW, 14);
                 s.setBounds (dx + (dialW - dialSize) / 2, dialY, dialSize, dialSize);
             };
 

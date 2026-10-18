@@ -36,6 +36,18 @@ namespace Floweret
 
         void loadSample (const juce::AudioBuffer<float>& sample, bool isGranular);
 
+        void setEffectChain (const std::vector<int>& chain)
+        {
+            juce::ScopedLock sl (synthLock);
+            effectChain = chain;
+        }
+
+        std::vector<int> getEffectChain() const
+        {
+            juce::ScopedLock sl (synthLock);
+            return effectChain;
+        }
+
     private:
         double currentSampleRate = 44100.0;
         int currentPitchWheel = 8192;
@@ -46,6 +58,8 @@ namespace Floweret
         EffectsRack effectsRack;
         Arpeggiator arpeggiator;
         ClipSequencer clipSequencer;
+
+        std::vector<int> effectChain = { 0, 1, 2, 3 };
 
         juce::AudioBuffer<float> subDirectBuffer;
 

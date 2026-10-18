@@ -30,17 +30,31 @@ namespace Floweret
         {
             stage = Stage::Idle;
             currentLevel = 0.0f;
+            releaseStartLevel = 1.0f;
         }
 
         void noteOn()
         {
             stage = Stage::Attack;
+            if (currentLevel < 0.0f || currentLevel > 1.0f)
+                currentLevel = 0.0f;
         }
 
         void noteOff()
         {
             if (stage != Stage::Idle)
-                stage = Stage::Release;
+            {
+                releaseStartLevel = currentLevel;
+                if (releaseStartLevel <= 0.0001f)
+                {
+                    currentLevel = 0.0f;
+                    stage = Stage::Idle;
+                }
+                else
+                {
+                    stage = Stage::Release;
+                }
+            }
         }
 
         bool isActive() const noexcept
@@ -60,7 +74,8 @@ namespace Floweret
 
                 case Stage::Attack:
                 {
-                    const float rate = 1.0f / (std::max (0.001f, attackSec) * sr);
+                    const float aTime = std::max (0.001f, attackSec);
+                    const float rate = 1.0f / (aTime * sr);
                     currentLevel += rate;
                     if (currentLevel >= 1.0f)
                     {
@@ -72,25 +87,46 @@ namespace Floweret
 
                 case Stage::Decay:
                 {
-                    const float rate = (1.0f - sustainLevel) / (std::max (0.001f, decaySec) * sr);
+                    const float targetSustain = std::max (0.0f, std::min (1.0f, sustainLevel));
+                    const float decayRange = std::max (0.0001f, 1.0f - targetSustain);
+                    const float dTime = std::max (0.001f, decaySec);
+                    const float rate = decayRange / (dTime * sr);
                     currentLevel -= rate;
-                    if (currentLevel <= sustainLevel)
+                    if (currentLevel <= targetSustain)
                     {
-                        currentLevel = sustainLevel;
-                        stage = Stage::Sustain;
+                        currentLevel = targetSustain;
+                        if (targetSustain <= 0.0001f)
+                        {
+                            currentLevel = 0.0f;
+                            stage = Stage::Idle;
+                        }
+                        else
+                        {
+                            stage = Stage::Sustain;
+                        }
                     }
                     break;
                 }
 
                 case Stage::Sustain:
-                    currentLevel = sustainLevel;
+                {
+                    const float targetSustain = std::max (0.0f, std::min (1.0f, sustainLevel));
+                    currentLevel = targetSustain;
+                    if (targetSustain <= 0.0001f)
+                    {
+                        currentLevel = 0.0f;
+                        stage = Stage::Idle;
+                    }
                     break;
+                }
 
                 case Stage::Release:
                 {
-                    const float rate = sustainLevel / (std::max (0.001f, releaseSec) * sr);
+                    const float rTime = std::max (0.001f, releaseSec);
+                    const float base = (releaseStartLevel > 0.0001f) ? releaseStartLevel : 1.0f;
+                    const float rate = base / (rTime * sr);
                     currentLevel -= rate;
-                    if (currentLevel <= 0.0f)
+                    if (currentLevel <= 0.0001f)
                     {
                         currentLevel = 0.0f;
                         stage = Stage::Idle;
@@ -108,5 +144,6 @@ namespace Floweret
         double currentSampleRate = 44100.0;
         Stage stage = Stage::Idle;
         float currentLevel = 0.0f;
+        float releaseStartLevel = 1.0f;
     };
 }

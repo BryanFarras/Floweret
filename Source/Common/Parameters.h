@@ -153,15 +153,47 @@ namespace Floweret
         inline const juce::ParameterID spectralMorph   { "spectral_morph", 1 };
         inline const juce::ParameterID spectralGate    { "spectral_gate", 1 };
 
-        // Wavetable Oscillator
+        // Wavetable Oscillator A
         inline const juce::ParameterID wtActive        { "wt_active", 1 };
         inline const juce::ParameterID wtPosition      { "wt_position", 1 };
         inline const juce::ParameterID wtWarpMode      { "wt_warp_mode", 1 };
         inline const juce::ParameterID wtWarpAmount    { "wt_warp_amount", 1 };
         inline const juce::ParameterID wtSmoothInterp  { "wt_smooth_interp", 1 };
         inline const juce::ParameterID wtDetune        { "wt_detune", 1 };
+        inline const juce::ParameterID wtTune          { "wt_detune", 1 };
         inline const juce::ParameterID wtPan           { "wt_pan", 1 };
         inline const juce::ParameterID wtLevel         { "wt_level", 1 };
+        inline const juce::ParameterID wtUnison        { "wt_unison", 1 };
+        inline const juce::ParameterID wtDetuneFine    { "wt_detune_fine", 1 };
+        inline const juce::ParameterID wtMix           { "wt_mix", 1 };
+
+        // Wavetable Oscillator B
+        inline const juce::ParameterID wtBActive       { "wt_b_active", 1 };
+        inline const juce::ParameterID wtBPosition     { "wt_b_position", 1 };
+        inline const juce::ParameterID wtBWarpMode     { "wt_b_warp_mode", 1 };
+        inline const juce::ParameterID wtBWarpAmount   { "wt_b_warp_amount", 1 };
+        inline const juce::ParameterID wtBSmoothInterp { "wt_b_smooth_interp", 1 };
+        inline const juce::ParameterID wtBDetune       { "wt_b_detune", 1 };
+        inline const juce::ParameterID wtBTune         { "wt_b_detune", 1 };
+        inline const juce::ParameterID wtBPan          { "wt_b_pan", 1 };
+        inline const juce::ParameterID wtBLevel        { "wt_b_level", 1 };
+        inline const juce::ParameterID wtBUnison       { "wt_b_unison", 1 };
+        inline const juce::ParameterID wtBDetuneFine   { "wt_b_detune_fine", 1 };
+        inline const juce::ParameterID wtBMix          { "wt_b_mix", 1 };
+
+        // Wavetable Oscillator C
+        inline const juce::ParameterID wtCActive       { "wt_c_active", 1 };
+        inline const juce::ParameterID wtCPosition     { "wt_c_position", 1 };
+        inline const juce::ParameterID wtCWarpMode     { "wt_c_warp_mode", 1 };
+        inline const juce::ParameterID wtCWarpAmount   { "wt_c_warp_amount", 1 };
+        inline const juce::ParameterID wtCSmoothInterp { "wt_c_smooth_interp", 1 };
+        inline const juce::ParameterID wtCDetune       { "wt_c_detune", 1 };
+        inline const juce::ParameterID wtCTune         { "wt_c_detune", 1 };
+        inline const juce::ParameterID wtCPan          { "wt_c_pan", 1 };
+        inline const juce::ParameterID wtCLevel        { "wt_c_level", 1 };
+        inline const juce::ParameterID wtCUnison       { "wt_c_unison", 1 };
+        inline const juce::ParameterID wtCDetuneFine   { "wt_c_detune_fine", 1 };
+        inline const juce::ParameterID wtCMix          { "wt_c_mix", 1 };
 
         // Granular Oscillator
         inline const juce::ParameterID granActive      { "gran_active", 1 };
@@ -282,23 +314,77 @@ namespace Floweret
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
             ParamIDs::spectralGate, "Spectral Gate", juce::NormalisableRange<float> (-60.0f, 0.0f, 0.1f), -40.0f));
 
-        // Wavetable Oscillator
+        // Wavetable Oscillator A
         params.push_back (std::make_unique<juce::AudioParameterBool> (
-            ParamIDs::wtActive, "Wavetable Active", true));
+            ParamIDs::wtActive, "WT A Active", true));
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
-            ParamIDs::wtPosition, "WT Position", juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.0f));
+            ParamIDs::wtPosition, "WT A Position", juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.0f));
         params.push_back (std::make_unique<juce::AudioParameterChoice> (
-            ParamIDs::wtWarpMode, "WT Warp Mode", getWarpModeNames(), 0));
+            ParamIDs::wtWarpMode, "WT A Warp Mode", getWarpModeNames(), 0));
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
-            ParamIDs::wtWarpAmount, "WT Warp Amount", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.0f));
+            ParamIDs::wtWarpAmount, "WT A Warp Amount", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.0f));
         params.push_back (std::make_unique<juce::AudioParameterBool> (
-            ParamIDs::wtSmoothInterp, "Smooth Interpolation", true));
+            ParamIDs::wtSmoothInterp, "WT A Smooth Interp", true));
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
-            ParamIDs::wtDetune, "WT Detune", juce::NormalisableRange<float> (-24.0f, 24.0f, 0.01f), 0.0f));
+            ParamIDs::wtDetune, "WT A Detune/Tune", juce::NormalisableRange<float> (-24.0f, 24.0f, 0.01f), 0.0f));
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
-            ParamIDs::wtPan, "WT Pan", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f), 0.0f));
+            ParamIDs::wtPan, "WT A Pan", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f), 0.0f));
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
-            ParamIDs::wtLevel, "WT Level", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.8f));
+            ParamIDs::wtLevel, "WT A Level", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.8f));
+        params.push_back (std::make_unique<juce::AudioParameterInt> (
+            ParamIDs::wtUnison, "WT A Unison", 1, 16, 1));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtDetuneFine, "WT A Detune Fine", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.15f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtMix, "WT A Mix", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.85f));
+
+        // Wavetable Oscillator B
+        params.push_back (std::make_unique<juce::AudioParameterBool> (
+            ParamIDs::wtBActive, "WT B Active", true));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBPosition, "WT B Position", juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.25f));
+        params.push_back (std::make_unique<juce::AudioParameterChoice> (
+            ParamIDs::wtBWarpMode, "WT B Warp Mode", getWarpModeNames(), 0));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBWarpAmount, "WT B Warp Amount", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.0f));
+        params.push_back (std::make_unique<juce::AudioParameterBool> (
+            ParamIDs::wtBSmoothInterp, "WT B Smooth Interp", true));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBDetune, "WT B Detune/Tune", juce::NormalisableRange<float> (-24.0f, 24.0f, 0.01f), 0.0f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBPan, "WT B Pan", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f), 0.0f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBLevel, "WT B Level", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.8f));
+        params.push_back (std::make_unique<juce::AudioParameterInt> (
+            ParamIDs::wtBUnison, "WT B Unison", 1, 16, 1));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBDetuneFine, "WT B Detune Fine", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.15f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtBMix, "WT B Mix", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.85f));
+
+        // Wavetable Oscillator C
+        params.push_back (std::make_unique<juce::AudioParameterBool> (
+            ParamIDs::wtCActive, "WT C Active", true));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCPosition, "WT C Position", juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.5f));
+        params.push_back (std::make_unique<juce::AudioParameterChoice> (
+            ParamIDs::wtCWarpMode, "WT C Warp Mode", getWarpModeNames(), 0));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCWarpAmount, "WT C Warp Amount", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.0f));
+        params.push_back (std::make_unique<juce::AudioParameterBool> (
+            ParamIDs::wtCSmoothInterp, "WT C Smooth Interp", true));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCTune, "WT C Detune/Tune", juce::NormalisableRange<float> (-24.0f, 24.0f, 0.01f), 0.0f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCPan, "WT C Pan", juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f), 0.0f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCLevel, "WT C Level", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.8f));
+        params.push_back (std::make_unique<juce::AudioParameterInt> (
+            ParamIDs::wtCUnison, "WT C Unison", 1, 16, 1));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCDetuneFine, "WT C Detune Fine", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.15f));
+        params.push_back (std::make_unique<juce::AudioParameterFloat> (
+            ParamIDs::wtCMix, "WT C Mix", juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.85f));
 
         // Granular Oscillator
         params.push_back (std::make_unique<juce::AudioParameterBool> (

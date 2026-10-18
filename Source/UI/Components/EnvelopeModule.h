@@ -64,8 +64,10 @@ namespace Floweret
             // Header line
             g.drawHorizontalLine (24, bounds.getX(), bounds.getRight());
 
-            // ADSR Graphical Curve Display Area (y: 28 to 90)
-            auto curveBounds = juce::Rectangle<float> (bounds.getX() + 8.0f, 28.0f, bounds.getWidth() - 16.0f, 62.0f);
+            // ADSR Graphical Curve Display Area
+            const float dialAreaH = 72.0f;
+            const float curveH = juce::jmax (40.0f, bounds.getHeight() - dialAreaH - 30.0f);
+            auto curveBounds = juce::Rectangle<float> (bounds.getX() + 8.0f, 28.0f, bounds.getWidth() - 16.0f, curveH);
             g.setColour (juce::Colour::fromRGB (0x22, 0x26, 0x28));
             g.fillRoundedRectangle (curveBounds, 4.0f);
             g.setColour (lookAndFeel.getPlatinumBorder().withAlpha (0.35f));
@@ -127,14 +129,15 @@ namespace Floweret
             tabEnv2.setBounds (78, 4, 22, 18);
             tabEnv3.setBounds (102, 4, 22, 18);
 
-            // 4 ADSR Dials (y: 96 to bottom)
-            const int dialY = 114;
+            // 4 ADSR Dials anchored dynamically to bottom
             const int dialW = (getWidth() - 16) / 4;
-            const int dialSize = juce::jmin (dialW - 4, 46);
+            const int dialSize = juce::jlimit (32, 50, dialW - 4);
+            const int dialY = getHeight() - dialSize - 10;
+            const int labelY = dialY - 16;
 
             auto placeDial = [&](juce::Slider& s, juce::Label& l, int idx) {
                 const int dx = 8 + idx * dialW;
-                l.setBounds (dx, 96, dialW, 14);
+                l.setBounds (dx, labelY, dialW, 14);
                 s.setBounds (dx + (dialW - dialSize) / 2, dialY, dialSize, dialSize);
             };
 

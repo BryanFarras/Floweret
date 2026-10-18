@@ -5,12 +5,11 @@ namespace Floweret
 {
     FloweretAudioProcessorEditor::FloweretAudioProcessorEditor (FloweretAudioProcessor& p)
         : AudioProcessorEditor (&p), audioProcessor (p),
-          oscA ("OSC A", lookAndFeel, audioProcessor.getAPVTS()),
-          oscB ("OSC B", lookAndFeel, audioProcessor.getAPVTS()),
-          oscC ("OSC C", lookAndFeel, audioProcessor.getAPVTS()),
+          oscA (OscId::A, lookAndFeel, audioProcessor.getAPVTS()),
+          oscB (OscId::B, lookAndFeel, audioProcessor.getAPVTS()),
+          oscC (OscId::C, lookAndFeel, audioProcessor.getAPVTS()),
           noiseSub (lookAndFeel, audioProcessor.getAPVTS()),
           preFilter (lookAndFeel, audioProcessor.getAPVTS()),
-          emptyBoxLeft (lookAndFeel, "[ EMPTY BOX ]"),
           voicing (lookAndFeel, audioProcessor.getAPVTS()),
           envModule (lookAndFeel, audioProcessor.getAPVTS()),
           lfoModule (lookAndFeel, audioProcessor.getAPVTS()),
@@ -75,7 +74,6 @@ namespace Floweret
         addAndMakeVisible (oscC);
         addAndMakeVisible (noiseSub);
         addAndMakeVisible (preFilter);
-        addAndMakeVisible (emptyBoxLeft);
 
         addAndMakeVisible (voicing);
         addAndMakeVisible (envModule);
@@ -86,6 +84,10 @@ namespace Floweret
         addChildComponent (guitarRigRack);
         addChildComponent (samplerDisplay);
         addChildComponent (routesDisplay);
+
+        guitarRigRack.onOrderChanged = [this](const std::vector<int>& chain) {
+            audioProcessor.getSynth().setEffectChain (chain);
+        };
 
         // 4. Bottom Virtual Piano Keyboard (from design1.png)
         addAndMakeVisible (keyboard);
@@ -98,7 +100,12 @@ namespace Floweret
 
         setupAttachments();
 
-        setSize (1100, 740);
+        logoImage = LogoData::getLogoImage();
+
+        setResizable (true, true);
+        setResizeLimits (900, 605, 2640, 1776);
+        getConstrainer()->setFixedAspectRatio (1320.0 / 888.0);
+        setSize (1320, 888);
         startTimerHz (30);
     }
 
@@ -132,7 +139,6 @@ namespace Floweret
         oscC.setVisible (isOsc);
         noiseSub.setVisible (isOsc);
         preFilter.setVisible (isOsc);
-        emptyBoxLeft.setVisible (isOsc);
 
         voicing.setVisible (isOsc);
         envModule.setVisible (isOsc);
@@ -182,7 +188,8 @@ namespace Floweret
         // 2. Subtle Blueprint / Drafting Dot Grid from design1.png
         g.setColour (lookAndFeel.getPlatinumBorder().withAlpha (0.45f));
         const float dotSpacing = 16.0f;
-        for (float y = 42.0f; y < h - 90.0f; y += dotSpacing)
+        const float bottomGridY = static_cast<float> (keyboard.getY() - 4);
+        for (float y = 42.0f; y < bottomGridY; y += dotSpacing)
         {
             for (float x = 12.0f; x < w - 12.0f; x += dotSpacing)
             {
@@ -193,6 +200,21 @@ namespace Floweret
         // Header separator line
         g.setColour (lookAndFeel.getPlatinumBorder());
         g.drawHorizontalLine (38, 12.0f, w - 12.0f);
+
+        // 3. Brand Title / Logo in the top-middle next to tabs
+        if (logoImage.isValid())
+        {
+            const float maxLogoW = juce::jmax (120.0f, (w - 370.0f) - 384.0f);
+            const float logoH = 26.0f;
+            const float logoW = juce::jmin (242.0f, maxLogoW);
+            const float logoX = juce::jmax (384.0f, (w - logoW) * 0.5f);
+            const float logoY = 6.0f;
+
+            g.drawImageWithin (logoImage,
+                               static_cast<int> (logoX), static_cast<int> (logoY),
+                               static_cast<int> (logoW), static_cast<int> (logoH),
+                               juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize);
+        }
 
         // Drag-and-drop indicator
         if (isDraggingFile)
@@ -205,6 +227,7 @@ namespace Floweret
     void FloweretAudioProcessorEditor::resized()
     {
         const int w = getWidth();
+        const int h = getHeight();
 
         // 1. Top Switchable Tabs from design1.png (OSCILATOR, EFFECTS, ROUTES, SAMPLER)
         const int tabW = 86;
@@ -233,54 +256,61 @@ namespace Floweret
         const int leftColX = marginX;
         const int rightColX = leftColX + leftColW + colGap;
 
+        // Bottom Strip: Full-Width Virtual Piano Keyboard
+        const int keyboardH = juce::jlimit (60, 110, static_cast<int> (h * 0.11f));
+        const int keyboardY = h - keyboardH - 8;
+        const int workspaceY = 42;
+        const int workspaceH = keyboardY - workspaceY - 8;
+
         // Left Column:
-        // Row 1: OSC A (h: 112)
-        // Row 2: OSC B (h: 112)
-        // Row 3: OSC C (h: 112)
-        // Row 4: NOISE OSC & SUB OSC (h: 78)
-        // Row 5: PRE FILTER (3) & [EMPTY BOX] (h: 164)
-        const int rowGap = 7;
-        const int oscH = 112;
+        // Row 1: OSC A
+        // Row 2: OSC B
+        // Row 3: OSC C
+        // Row 4: NOISE OSC & SUB OSC
+        // Row 5: PRE FILTER (3) & [EMPTY BOX]
+        const int rowGap = juce::jlimit (4, 10, static_cast<int> (workspaceH * 0.012f));
+        const int availLeftH = workspaceH - (4 * rowGap);
+        const int oscH = static_cast<int> (availLeftH * 0.185f);
+        const int noiseH = static_cast<int> (availLeftH * 0.13f);
+        const int filterH = availLeftH - (3 * oscH) - noiseH;
 
-        oscA.setBounds (leftColX, 44 + 0 * (oscH + rowGap), leftColW, oscH);
-        oscB.setBounds (leftColX, 44 + 1 * (oscH + rowGap), leftColW, oscH);
-        oscC.setBounds (leftColX, 44 + 2 * (oscH + rowGap), leftColW, oscH);
+        oscA.setBounds (leftColX, workspaceY + 0 * (oscH + rowGap), leftColW, oscH);
+        oscB.setBounds (leftColX, workspaceY + 1 * (oscH + rowGap), leftColW, oscH);
+        oscC.setBounds (leftColX, workspaceY + 2 * (oscH + rowGap), leftColW, oscH);
 
-        const int noiseY = 44 + 3 * (oscH + rowGap);
-        const int noiseH = 78;
+        const int noiseY = workspaceY + 3 * (oscH + rowGap);
         noiseSub.setBounds (leftColX, noiseY, leftColW, noiseH);
 
         const int filterY = noiseY + noiseH + rowGap;
-        const int filterH = 164;
-        const int halfW = (leftColW - 6) / 2;
-        preFilter.setBounds    (leftColX, filterY, halfW, filterH);
-        emptyBoxLeft.setBounds (leftColX + halfW + 6, filterY, leftColW - halfW - 6, filterH);
+        preFilter.setBounds (leftColX, filterY, leftColW, filterH);
 
         // Right Column:
-        // Row 1: VOICING & ENV (h: 176)
-        // Row 2: LFO (4 LFO Default) (h: 216)
-        // Row 3: [EMPTY BOX] (h: 194)
-        const int rHalfW = (rightColW - 6) / 2;
-        const int rRow1H = 176;
-        voicing.setBounds   (rightColX, 44, rHalfW, rRow1H);
-        envModule.setBounds (rightColX + rHalfW + 6, 44, rightColW - rHalfW - 6, rRow1H);
+        // Row 1: VOICING & ENV
+        // Row 2: LFO (4 LFO Default)
+        // Row 3: [EMPTY BOX]
+        const int availRightH = workspaceH - (2 * rowGap);
+        const int rRow1H = static_cast<int> (availRightH * 0.30f);
+        const int lfoH = static_cast<int> (availRightH * 0.37f);
+        const int rEmptyH = availRightH - rRow1H - lfoH;
 
-        const int lfoY = 44 + rRow1H + rowGap;
-        const int lfoH = 216;
+        const int rHalfW = (rightColW - 6) / 2;
+        voicing.setBounds   (rightColX, workspaceY, rHalfW, rRow1H);
+        envModule.setBounds (rightColX + rHalfW + 6, workspaceY, rightColW - rHalfW - 6, rRow1H);
+
+        const int lfoY = workspaceY + rRow1H + rowGap;
         lfoModule.setBounds (rightColX, lfoY, rightColW, lfoH);
 
         const int rEmptyY = lfoY + lfoH + rowGap;
-        const int rEmptyH = 194;
         emptyBoxRight.setBounds (rightColX, rEmptyY, rightColW, rEmptyH);
 
         // Alternative Views (Cover main workspace when active)
-        const auto altBounds = juce::Rectangle<int> (marginX, 44, totalW, 600);
+        const auto altBounds = juce::Rectangle<int> (marginX, workspaceY, totalW, workspaceH);
         guitarRigRack.setBounds  (altBounds);
         samplerDisplay.setBounds (altBounds);
         routesDisplay.setBounds  (altBounds);
 
-        // 3. Bottom Strip: Full-Width Virtual Piano Keyboard from design1.png (y: 652 to 732)
-        keyboard.setBounds (marginX, 652, totalW, 80);
+        // 3. Bottom Strip: Full-Width Virtual Piano Keyboard from design1.png
+        keyboard.setBounds (marginX, keyboardY, totalW, keyboardH);
     }
 
     bool FloweretAudioProcessorEditor::isInterestedInFileDrag (const juce::StringArray& files)

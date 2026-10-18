@@ -9,7 +9,9 @@ namespace Floweret
     void FloweretVoice::prepare (double sampleRate)
     {
         currentSampleRate = sampleRate;
-        wavetableOsc.prepare (sampleRate);
+        wavetableOscA.prepare (sampleRate);
+        wavetableOscB.prepare (sampleRate);
+        wavetableOscC.prepare (sampleRate);
         granularOsc.prepare (sampleRate);
         spectralOsc.prepare (sampleRate);
         sampleOsc.prepare (sampleRate);
@@ -31,7 +33,9 @@ namespace Floweret
         currentVelocity = 0.0f;
         pitchBendSemitones = 0.0f;
 
-        wavetableOsc.reset();
+        wavetableOscA.reset();
+        wavetableOscB.reset();
+        wavetableOscC.reset();
         granularOsc.reset();
         spectralOsc.reset();
         sampleOsc.reset();
@@ -54,7 +58,9 @@ namespace Floweret
         const float noteWithBend = static_cast<float> (currentMidiNote) + pitchBendSemitones;
         const float freq = midiToFreq (noteWithBend);
 
-        wavetableOsc.setFrequency (freq);
+        wavetableOscA.setFrequency (freq);
+        wavetableOscB.setFrequency (freq);
+        wavetableOscC.setFrequency (freq);
         granularOsc.setFrequency (freq);
         spectralOsc.setFrequency (freq);
         sampleOsc.setFrequency (freq);
@@ -71,6 +77,8 @@ namespace Floweret
         {
             ampEnvelope.noteOff();
             filterEnvelope.noteOff();
+            if (!ampEnvelope.isActive())
+                reset();
         }
         else
         {
@@ -87,7 +95,9 @@ namespace Floweret
         {
             const float noteWithBend = static_cast<float> (currentMidiNote) + pitchBendSemitones;
             const float freq = midiToFreq (noteWithBend);
-            wavetableOsc.setFrequency (freq);
+            wavetableOscA.setFrequency (freq);
+            wavetableOscB.setFrequency (freq);
+            wavetableOscC.setFrequency (freq);
             granularOsc.setFrequency (freq);
             spectralOsc.setFrequency (freq);
             sampleOsc.setFrequency (freq);
@@ -108,14 +118,47 @@ namespace Floweret
         if (!isActive())
             return;
 
-        // Fetch parameters from APVTS
+        // Fetch parameters from APVTS for OSC A, B, and C
         const bool wtActive = apvts.getRawParameterValue (ParamIDs::wtActive.getParamID())->load() > 0.5f;
         const float wtPos = apvts.getRawParameterValue (ParamIDs::wtPosition.getParamID())->load();
         const auto wtWarpMode = static_cast<WarpMode> (static_cast<int> (apvts.getRawParameterValue (ParamIDs::wtWarpMode.getParamID())->load()));
         const float wtWarpAmount = apvts.getRawParameterValue (ParamIDs::wtWarpAmount.getParamID())->load();
         const bool wtSmooth = apvts.getRawParameterValue (ParamIDs::wtSmoothInterp.getParamID())->load() > 0.5f;
+        const float wtTune = apvts.getRawParameterValue (ParamIDs::wtDetune.getParamID())->load();
         const float wtPan = apvts.getRawParameterValue (ParamIDs::wtPan.getParamID())->load();
         const float wtLevel = apvts.getRawParameterValue (ParamIDs::wtLevel.getParamID())->load();
+        const int wtUnison = static_cast<int> (apvts.getRawParameterValue (ParamIDs::wtUnison.getParamID())->load());
+        const float wtDetuneFine = apvts.getRawParameterValue (ParamIDs::wtDetuneFine.getParamID())->load();
+        const float wtMix = apvts.getRawParameterValue (ParamIDs::wtMix.getParamID())->load();
+
+        const bool wtBActive = apvts.getRawParameterValue (ParamIDs::wtBActive.getParamID())->load() > 0.5f;
+        const float wtBPos = apvts.getRawParameterValue (ParamIDs::wtBPosition.getParamID())->load();
+        const auto wtBWarpMode = static_cast<WarpMode> (static_cast<int> (apvts.getRawParameterValue (ParamIDs::wtBWarpMode.getParamID())->load()));
+        const float wtBWarpAmount = apvts.getRawParameterValue (ParamIDs::wtBWarpAmount.getParamID())->load();
+        const bool wtBSmooth = apvts.getRawParameterValue (ParamIDs::wtBSmoothInterp.getParamID())->load() > 0.5f;
+        const float wtBTune = apvts.getRawParameterValue (ParamIDs::wtBDetune.getParamID())->load();
+        const float wtBPan = apvts.getRawParameterValue (ParamIDs::wtBPan.getParamID())->load();
+        const float wtBLevel = apvts.getRawParameterValue (ParamIDs::wtBLevel.getParamID())->load();
+        const int wtBUnison = static_cast<int> (apvts.getRawParameterValue (ParamIDs::wtBUnison.getParamID())->load());
+        const float wtBDetuneFine = apvts.getRawParameterValue (ParamIDs::wtBDetuneFine.getParamID())->load();
+        const float wtBMix = apvts.getRawParameterValue (ParamIDs::wtBMix.getParamID())->load();
+
+        const bool wtCActive = apvts.getRawParameterValue (ParamIDs::wtCActive.getParamID())->load() > 0.5f;
+        const float wtCPos = apvts.getRawParameterValue (ParamIDs::wtCPosition.getParamID())->load();
+        const auto wtCWarpMode = static_cast<WarpMode> (static_cast<int> (apvts.getRawParameterValue (ParamIDs::wtCWarpMode.getParamID())->load()));
+        const float wtCWarpAmount = apvts.getRawParameterValue (ParamIDs::wtCWarpAmount.getParamID())->load();
+        const bool wtCSmooth = apvts.getRawParameterValue (ParamIDs::wtCSmoothInterp.getParamID())->load() > 0.5f;
+        const float wtCTune = apvts.getRawParameterValue (ParamIDs::wtCTune.getParamID())->load();
+        const float wtCPan = apvts.getRawParameterValue (ParamIDs::wtCPan.getParamID())->load();
+        const float wtCLevel = apvts.getRawParameterValue (ParamIDs::wtCLevel.getParamID())->load();
+        const int wtCUnison = static_cast<int> (apvts.getRawParameterValue (ParamIDs::wtCUnison.getParamID())->load());
+        const float wtCDetuneFine = apvts.getRawParameterValue (ParamIDs::wtCDetuneFine.getParamID())->load();
+        const float wtCMix = apvts.getRawParameterValue (ParamIDs::wtCMix.getParamID())->load();
+
+        const float baseNote = static_cast<float> (currentMidiNote) + pitchBendSemitones;
+        wavetableOscA.setFrequency (midiToFreq (baseNote + wtTune));
+        wavetableOscB.setFrequency (midiToFreq (baseNote + wtBTune));
+        wavetableOscC.setFrequency (midiToFreq (baseNote + wtCTune));
 
         const bool granActive = apvts.getRawParameterValue (ParamIDs::granActive.getParamID())->load() > 0.5f;
         const float granPos = apvts.getRawParameterValue (ParamIDs::granPosition.getParamID())->load();
@@ -202,12 +245,38 @@ namespace Floweret
                 }
             }
 
-            // Generate Wavetable sample (with optional sub-oscillator FM input)
-            float wtSample = 0.0f;
+            // Generate Wavetable stereo samples for A, B, and C
+            float wtSampleL = 0.0f;
+            float wtSampleR = 0.0f;
+
             if (wtActive)
             {
                 const float modPos = std::max (0.0f, std::min (wtPos + lfoVal * 0.15f, 1.0f));
-                wtSample = wavetableOsc.getNextSample (modPos, wtWarpMode, wtWarpAmount, wtSmooth, subSample) * wtLevel;
+                const auto stereo = wavetableOscA.getNextSampleStereo (modPos, wtWarpMode, wtWarpAmount, wtSmooth,
+                                                                      wtUnison, wtDetuneFine, wtPan, subSample);
+                const float gainA = wtLevel * wtMix;
+                wtSampleL += stereo.first * gainA;
+                wtSampleR += stereo.second * gainA;
+            }
+
+            if (wtBActive)
+            {
+                const float modPos = std::max (0.0f, std::min (wtBPos + lfoVal * 0.15f, 1.0f));
+                const auto stereo = wavetableOscB.getNextSampleStereo (modPos, wtBWarpMode, wtBWarpAmount, wtBSmooth,
+                                                                      wtBUnison, wtBDetuneFine, wtBPan);
+                const float gainB = wtBLevel * wtBMix;
+                wtSampleL += stereo.first * gainB;
+                wtSampleR += stereo.second * gainB;
+            }
+
+            if (wtCActive)
+            {
+                const float modPos = std::max (0.0f, std::min (wtCPos + lfoVal * 0.15f, 1.0f));
+                const auto stereo = wavetableOscC.getNextSampleStereo (modPos, wtCWarpMode, wtCWarpAmount, wtCSmooth,
+                                                                      wtCUnison, wtCDetuneFine, wtCPan);
+                const float gainC = wtCLevel * wtCMix;
+                wtSampleL += stereo.first * gainC;
+                wtSampleR += stereo.second * gainC;
             }
 
             // Generate Granular cloud sample
@@ -249,7 +318,8 @@ namespace Floweret
             }
 
             // Mix pre-filter audio
-            const float monoMix = wtSample + specSample + smpSample + msmpSample + noiseSample
+            const float wtMono = (wtSampleL + wtSampleR) * 0.5f;
+            const float monoMix = wtMono + specSample + smpSample + msmpSample + noiseSample
                                 + ((subActive && !subDirect) ? subSample : 0.0f);
 
             // Modulate filter cutoff with filter envelope
@@ -258,8 +328,8 @@ namespace Floweret
 
             // Apply Amp Envelope & Velocity
             const float voiceGain = ampEnvVal * currentVelocity;
-            const float leftVoice = (filteredMono * (1.0f - wtPan * 0.5f) + granSampleL) * voiceGain;
-            const float rightVoice = (filteredMono * (1.0f + wtPan * 0.5f) + granSampleR) * voiceGain;
+            const float leftVoice = (filteredMono + (wtSampleL - wtMono) + granSampleL) * voiceGain;
+            const float rightVoice = (filteredMono + (wtSampleR - wtMono) + granSampleR) * voiceGain;
 
             outL[startSample + i] += leftVoice;
             outR[startSample + i] += rightVoice;

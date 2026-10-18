@@ -61,7 +61,22 @@ namespace Floweret
 
     void FloweretSynth::handleNoteOn (int midiNote, float velocity)
     {
+        if (velocity <= 0.0001f)
+        {
+            handleNoteOff (midiNote, velocity);
+            return;
+        }
+
         arpeggiator.handleNoteOn (midiNote);
+
+        // Retrigger cleanly if this note is already playing on any voice
+        for (auto& v : voices)
+        {
+            if (v.isActive() && v.getCurrentlyPlayingNote() == midiNote)
+            {
+                v.stopNote (0.0f, false);
+            }
+        }
 
         auto* voice = findFreeVoice();
         if (voice != nullptr)
@@ -79,6 +94,18 @@ namespace Floweret
             if (v.isActive() && v.getCurrentlyPlayingNote() == midiNote)
             {
                 v.stopNote (velocity, true);
+            }
+        }
+
+        // If arpeggiator has no more held notes, release any active harmonic voices
+        if (!arpeggiator.hasNotes())
+        {
+            for (auto& v : voices)
+            {
+                if (v.isActive() && (v.getCurrentlyPlayingNote() % 12 == midiNote % 12))
+                {
+                    v.stopNote (velocity, true);
+                }
             }
         }
     }
@@ -144,11 +171,11 @@ namespace Floweret
         for (const auto metadata : midiMessages)
         {
             const auto msg = metadata.getMessage();
-            if (msg.isNoteOn())
+            if (msg.isNoteOn (false))
             {
                 handleNoteOn (msg.getNoteNumber(), msg.getFloatVelocity());
             }
-            else if (msg.isNoteOff())
+            else if (msg.isNoteOff (true))
             {
                 handleNoteOff (msg.getNoteNumber(), msg.getFloatVelocity());
             }
@@ -159,6 +186,11 @@ namespace Floweret
             else if (msg.isAllNotesOff() || msg.isAllSoundOff())
             {
                 allNotesOff();
+            }
+            else if (msg.isController())
+            {
+                if (msg.getControllerNumber() == 120 || msg.getControllerNumber() == 123)
+                    allNotesOff();
             }
         }
 
@@ -186,19 +218,45 @@ namespace Floweret
             }
         }
 
-        // 5. Process Color Bass Resonator on Main bus
+        // 5 & 6. Process Modular Effects Rack (Dynamic user drag-and-drop order)
         auto* left = buffer.getWritePointer (0);
         auto* right = (buffer.getNumChannels() > 1) ? buffer.getWritePointer (1) : left;
 
-        for (int i = 0; i < numSamples; ++i)
+        std::vector<int> currentChain;
         {
-            colorResonator.processStereo (left[i], right[i], colorAmount, specMorph, specGate);
+            juce::ScopedLock sl (synthLock);
+            currentChain = effectChain;
         }
 
-        // 6. Process Effects Rack (Distortion, Delay, Reverb)
-        effectsRack.processBlock (buffer, distType, distDrive, distMix,
-                                  delayTime, delayFeedback, delayMix,
-                                  reverbSize, reverbDamp, reverbMix);
+        for (int effectId : currentChain)
+        {
+            switch (effectId)
+            {
+                case 0: // Tube Saturator (Distortion)
+                    effectsRack.processDistortion (buffer, distType, distDrive, distMix);
+                    break;
+
+                case 1: // Color Resonator
+                {
+                    auto* lPtr = buffer.getWritePointer (0);
+                    auto* rPtr = (buffer.getNumChannels() > 1) ? buffer.getWritePointer (1) : lPtr;
+                    for (int i = 0; i < numSamples; ++i)
+                        colorResonator.processStereo (lPtr[i], rPtr[i], colorAmount, specMorph, specGate);
+                    break;
+                }
+
+                case 2: // Analog Stereo Delay
+                    effectsRack.processDelay (buffer, delayTime, delayFeedback, delayMix);
+                    break;
+
+                case 3: // Lush Botanica Reverb
+                    effectsRack.processReverb (buffer, reverbSize, reverbDamp, reverbMix);
+                    break;
+
+                default:
+                    break;
+            }
+        }
 
         // 7. Sum clean Sub Direct bus into master output
         const auto* subL = subDirectBuffer.getReadPointer (0);

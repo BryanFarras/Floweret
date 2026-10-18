@@ -16,8 +16,12 @@ namespace Floweret
 
     void WavetableOscillator::reset()
     {
-        phase = 0.0f;
-        syncPhase = 0.0f;
+        for (int i = 0; i < maxUnison; ++i)
+        {
+            unisonVoices[i].phase = static_cast<float> (i) * 0.6180339887f;
+            unisonVoices[i].phase -= std::floor (unisonVoices[i].phase);
+            unisonVoices[i].syncPhase = 0.0f;
+        }
     }
 
     void WavetableOscillator::setFrequency (float freq)
@@ -178,15 +182,10 @@ namespace Floweret
         return warped;
     }
 
-    float WavetableOscillator::getNextSample (float wtPosition, WarpMode warpMode, float warpAmount,
-                                             bool smoothInterp, float fmInput) noexcept
+    float WavetableOscillator::sampleTable (float warpedPhase, float wtPosition, bool smoothInterp) const noexcept
     {
-        const float phaseInc = currentFrequency / static_cast<float> (currentSampleRate);
-        phase += phaseInc;
-        if (phase >= 1.0f)
-            phase -= 1.0f;
-
-        const float warpedPhase = applyWarp (phase, warpMode, warpAmount, fmInput);
+        // Wrap warped phase to [0.0, 1.0)
+        float p = warpedPhase - std::floor (warpedPhase);
 
         // Frame index calculation
         const float clampedPos = std::max (0.0f, std::min (wtPosition, 1.0f));
@@ -196,43 +195,104 @@ namespace Floweret
         const float frameFrac = frameFloat - static_cast<float> (frame0);
 
         // Sample index within table
-        const float sampleFloat = warpedPhase * static_cast<float> (tableSize);
-        const int idx1 = static_cast<int> (sampleFloat);
+        const float sampleFloat = p * static_cast<float> (tableSize);
+        const int idx1 = static_cast<int> (sampleFloat) % tableSize;
         const int idx0 = (idx1 - 1 + tableSize) % tableSize;
         const int idx2 = (idx1 + 1) % tableSize;
         const int idx3 = (idx1 + 2) % tableSize;
-        const float sampleFrac = sampleFloat - static_cast<float> (idx1);
+        const float sampleFrac = sampleFloat - static_cast<float> (static_cast<int> (sampleFloat));
 
         float sFrame0 = 0.0f;
         float sFrame1 = 0.0f;
 
         if (smoothInterp)
         {
-            // Cubic Hermite interpolation inside frame 0
             sFrame0 = hermiteInterpolate (frames[frame0][idx0], frames[frame0][idx1],
                                           frames[frame0][idx2], frames[frame0][idx3], sampleFrac);
-
-            // Cubic Hermite interpolation inside frame 1
             sFrame1 = hermiteInterpolate (frames[frame1][idx0], frames[frame1][idx1],
                                           frames[frame1][idx2], frames[frame1][idx3], sampleFrac);
         }
         else
         {
-            // Linear interpolation
             sFrame0 = linearInterpolate (frames[frame0][idx1], frames[frame0][idx2], sampleFrac);
             sFrame1 = linearInterpolate (frames[frame1][idx1], frames[frame1][idx2], sampleFrac);
         }
 
-        // Interpolate across frames for continuous position
-        float finalSample = linearInterpolate (sFrame0, sFrame1, frameFrac);
+        return linearInterpolate (sFrame0, sFrame1, frameFrac);
+    }
 
-        if (warpMode == WarpMode::RingModulation && warpAmount > 0.001f)
+    std::pair<float, float> WavetableOscillator::getNextSampleStereo (float wtPosition, WarpMode warpMode, float warpAmount,
+                                                                     bool smoothInterp, int numUnison, float detuneFine,
+                                                                     float pan, float fmInput) noexcept
+    {
+        const int count = juce::jlimit (1, maxUnison, numUnison);
+        const float basePhaseInc = currentFrequency / static_cast<float> (currentSampleRate);
+
+        if (count == 1)
         {
-            const float rmCarrier = std::sin (phase * MathConstants::twoPi * 2.0f);
-            finalSample = linearInterpolate (finalSample, finalSample * rmCarrier, warpAmount);
+            auto& v = unisonVoices[0];
+            v.phase += basePhaseInc;
+            if (v.phase >= 1.0f)
+                v.phase -= 1.0f;
+
+            const float warped = applyWarp (v.phase, warpMode, warpAmount, fmInput);
+            float s = sampleTable (warped, wtPosition, smoothInterp);
+
+            if (warpMode == WarpMode::RingModulation && warpAmount > 0.001f)
+            {
+                const float rmCarrier = std::sin (v.phase * MathConstants::twoPi * 2.0f);
+                s = linearInterpolate (s, s * rmCarrier, warpAmount);
+            }
+
+            const float panAngle = (pan + 1.0f) * 0.25f * MathConstants::pi;
+            return { s * std::cos (panAngle), s * std::sin (panAngle) };
         }
 
-        return finalSample;
+        float sumL = 0.0f;
+        float sumR = 0.0f;
+
+        for (int i = 0; i < count; ++i)
+        {
+            // Unison detune factor (-1.0 to +1.0)
+            const float x = (2.0f * static_cast<float> (i) - static_cast<float> (count - 1))
+                          / static_cast<float> (count - 1);
+
+            // Detune up to 50 cents scaled by detuneFine
+            const float detuneCents = x * detuneFine * 50.0f;
+            const float freqMult = std::pow (2.0f, detuneCents / 1200.0f);
+            const float phaseInc = basePhaseInc * freqMult;
+
+            auto& v = unisonVoices[i];
+            v.phase += phaseInc;
+            if (v.phase >= 1.0f)
+                v.phase -= 1.0f;
+
+            const float warped = applyWarp (v.phase, warpMode, warpAmount, fmInput);
+            float s = sampleTable (warped, wtPosition, smoothInterp);
+
+            if (warpMode == WarpMode::RingModulation && warpAmount > 0.001f)
+            {
+                const float rmCarrier = std::sin (v.phase * MathConstants::twoPi * 2.0f);
+                s = linearInterpolate (s, s * rmCarrier, warpAmount);
+            }
+
+            // Stereo spread: pan spread across stereo field
+            const float voicePan = std::max (-1.0f, std::min (pan + x * 0.7f, 1.0f));
+            const float panAngle = (voicePan + 1.0f) * 0.25f * MathConstants::pi;
+
+            sumL += s * std::cos (panAngle);
+            sumR += s * std::sin (panAngle);
+        }
+
+        const float norm = 1.0f / std::sqrt (static_cast<float> (count));
+        return { sumL * norm, sumR * norm };
+    }
+
+    float WavetableOscillator::getNextSample (float wtPosition, WarpMode warpMode, float warpAmount,
+                                             bool smoothInterp, float fmInput) noexcept
+    {
+        auto stereo = getNextSampleStereo (wtPosition, warpMode, warpAmount, smoothInterp, 1, 0.0f, 0.0f, fmInput);
+        return stereo.first;
     }
 
     void WavetableOscillator::getWaveformForDisplay (float position, float* destBuffer, int numSamples) const
