@@ -1,8 +1,11 @@
-# Floweret
+![Floweret Logo](Assets/Logo/floweret_logo_transparent.png)
 
 > **Botanica Granular & Wavetable Synthesizer**  
 > Focused on _Color Bass_, _Botanica_, _Dubstep_, and _Glitch_.  
 > Built with JUCE 8 (VST3 & Standalone).
+
+> Development starts at October 17, 2026.  
+> Expected release date at May 16, 2027.
 
 ---
 
@@ -10,7 +13,7 @@
 
 **Floweret** combines the wavetable power of modern synths like Serum and Vital with an organic granular synthesis engine, real-time spectral resynthesis, and scale-locked harmonic resonators tailored for **Color Bass** and **Botanica** music.
 
-The visual design is inspired by the serene, organic **VINE** aesthetic:
+The visual design is inspired by the serene, organic **GRASS** aesthetic:
 
 - **Palette**: Warm ivory / soft cream canvas, deep pine / moss green accents, and glowing sage pointers.
 - **Growth Field**: Animated real-time visualizer featuring floating translucent frosted glass panels over generative terrain curves.
